@@ -254,7 +254,7 @@ export default function AIWriting() {
           <div className="flex items-center gap-4 mb-4">
             <Link 
               href="/dashboard"
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-text hover:text-text/80 font-medium"
             >
               ← 대시보드로 돌아가기
             </Link>
@@ -273,7 +273,7 @@ export default function AIWriting() {
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentStep >= step ? 'bg-text text-white' : 'bg-gray-200 text-gray-600'
+                  currentStep >= step ? 'bg-text text-white' : 'bg-gray-200 text-gray-700'
                 }`}>
                   {step}
                 </div>
@@ -378,7 +378,7 @@ export default function AIWriting() {
                     }`}
                   />
                   {errors.title && <span className="text-red-500 text-sm mt-1 block">{errors.title}</span>}
-                  <p className="text-gray-500 text-sm mt-1">제목이 마음에 들지 않으면 직접 수정할 수 있습니다.</p>
+                  <p className="text-gray-700 text-sm mt-1">제목이 마음에 들지 않으면 직접 수정할 수 있습니다.</p>
                 </div>
 
                 <div>
@@ -400,7 +400,7 @@ export default function AIWriting() {
                       <div className="text-center">
                         <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
                         <h3 className="font-semibold text-text mb-1">정보성</h3>
-                        <p className="text-sm text-gray-600">독자에게 유용한 정보와 지식을 제공하는 글</p>
+                        <p className="text-sm text-gray-700">독자에게 유용한 정보와 지식을 제공하는 글</p>
                       </div>
                     </label>
                     
@@ -418,7 +418,7 @@ export default function AIWriting() {
                       <div className="text-center">
                         <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
                         <h3 className="font-semibold text-text mb-1">판매성</h3>
-                        <p className="text-sm text-gray-600">제품이나 서비스 판매를 목적으로 하는 글</p>
+                        <p className="text-sm text-gray-700">제품이나 서비스 판매를 목적으로 하는 글</p>
                       </div>
                     </label>
                   </div>
@@ -551,7 +551,7 @@ export default function AIWriting() {
                   생성된 글 편집
                 </h2>
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-700">
                     총 <span className="font-semibold text-text">{generatedContent.totalCharCount.toLocaleString()}</span>자
                   </span>
                   <button
@@ -564,33 +564,33 @@ export default function AIWriting() {
               </div>
 
               {/* SEO 메트릭 */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
+              <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
                 <h3 className="text-lg font-semibold text-text mb-4">SEO 분석 결과</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-text">
                       {seoMetrics.seo_score}점
                     </div>
-                    <div className="text-sm text-gray-600">SEO 점수</div>
+                    <div className="text-sm text-gray-700">SEO 점수</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-text">
                       {seoMetrics.keyword_density}%
                     </div>
-                    <div className="text-sm text-gray-600">키워드 밀도</div>
+                    <div className="text-sm text-gray-700">키워드 밀도</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-text">
                       {seoMetrics.readability_score}점
                     </div>
-                    <div className="text-sm text-gray-600">가독성 점수</div>
+                    <div className="text-sm text-gray-700">가독성 점수</div>
                   </div>
                 </div>
               </div>
 
               {/* 목차 */}
               {contentOutline.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
                   <h3 className="text-lg font-semibold text-text mb-4">목차</h3>
                   <ol className="list-decimal list-inside space-y-1">
                     {contentOutline.map((item, index) => (
@@ -602,11 +602,11 @@ export default function AIWriting() {
 
               {/* 메타 설명 */}
               {metaDescription && (
-                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
                   <h3 className="text-lg font-semibold text-text mb-4">메타 설명</h3>
                   <p className="text-text text-sm leading-relaxed">{metaDescription}</p>
                   <div className="text-right mt-2">
-                    <span className="text-gray-500 text-xs">{metaDescription.length}/160자</span>
+                    <span className="text-gray-700 text-xs">{metaDescription.length}/160자</span>
                   </div>
                 </div>
               )}

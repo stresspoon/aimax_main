@@ -90,7 +90,7 @@ export default function Dashboard() {
             >
               {!feature.isActive && (
                 <div className="absolute top-4 right-4">
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                  <span className="bg-white border border-gray-300 text-gray-700 text-xs px-2 py-1 rounded-full">
                     개발 중
                   </span>
                 </div>

@@ -79,11 +79,12 @@ export default function AIWriting() {
         editedTitle: title
       }));
       setCurrentStep(2);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('제목 생성 오류:', error);
-      if (error.response?.data?.detail) {
-        setApiError(`제목 생성 실패: ${error.response.data.detail}`);
-      } else if (error.code === 'ECONNREFUSED') {
+      const axiosError = error as { response?: { data?: { detail?: string } }; code?: string };
+      if (axiosError.response?.data?.detail) {
+        setApiError(`제목 생성 실패: ${axiosError.response.data.detail}`);
+      } else if (axiosError.code === 'ECONNREFUSED') {
         setApiError('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
       } else {
         setApiError('제목 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -123,11 +124,12 @@ export default function AIWriting() {
         primaryKeyword: primary_keyword,
         subKeywords: sub_keywords
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('키워드 추천 오류:', error);
-      if (error.response?.data?.detail) {
-        setApiError(`키워드 추천 실패: ${error.response.data.detail}`);
-      } else if (error.code === 'ECONNREFUSED') {
+      const axiosError = error as { response?: { data?: { detail?: string } }; code?: string };
+      if (axiosError.response?.data?.detail) {
+        setApiError(`키워드 추천 실패: ${axiosError.response.data.detail}`);
+      } else if (axiosError.code === 'ECONNREFUSED') {
         setApiError('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
       } else {
         setApiError('키워드 추천 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -180,11 +182,12 @@ export default function AIWriting() {
       setContentOutline(outline);
       setMetaDescription(meta_description);
       setCurrentStep(4);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('콘텐츠 생성 오류:', error);
-      if (error.response?.data?.detail) {
-        setApiError(`콘텐츠 생성 실패: ${error.response.data.detail}`);
-      } else if (error.code === 'ECONNREFUSED') {
+      const axiosError = error as { response?: { data?: { detail?: string } }; code?: string };
+      if (axiosError.response?.data?.detail) {
+        setApiError(`콘텐츠 생성 실패: ${axiosError.response.data.detail}`);
+      } else if (axiosError.code === 'ECONNREFUSED') {
         setApiError('백엔드 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.');
       } else {
         setApiError('콘텐츠 생성 중 오류가 발생했습니다. 다시 시도해주세요.');

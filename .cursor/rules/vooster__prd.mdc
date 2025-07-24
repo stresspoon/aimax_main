@@ -1,0 +1,109 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# 제품 요구사항 문서(PRD)
+
+## 1. 개요(Executive Summary)
+본 프로젝트는 생성형 AI를 활용해 SEO 기반 글쓰기, SNS 콘텐츠 기획, 상세페이지 기획을 자동화·간소화하는 웹/앱 서비스이다. 콘텐츠 마케팅 리소스가 부족한 1인‧소규모 사업자가 혼자서도 전문적인 마케팅 콘텐츠를 제작·관리하도록 돕는다. 핵심 가치는 비용 절감, 제작 속도 향상, 퀄리티 균일화이다.
+
+## 2. 문제 정의(Problem Statement)
+- 소규모 사업자는 마케팅 예산·인력이 부족해 전문 콘텐츠 제작이 어렵다.
+- 외주 대행사는 비용이 높고 커뮤니케이션 비용이 크다.
+- 기존 도구는 개별 기능만 제공하거나 복잡해 학습 곡선이 높다.
+- AI 기반 자동화 도구 부재로 시간과 비용이 과다 소모된다.
+
+## 3. 목표 및 목적(Goals and Objectives)
+- Primary Goal: 누구나 쉽고 빠르게 다양한 마케팅 콘텐츠를 생성할 수 있게 한다.
+- Secondary Goals:
+  - 제작 시간 70% 단축
+  - 콘텐츠 제작 비용 60% 절감
+  - 사용자 월간 활성률(MAU) 40% 이상 유지
+- Success Metrics:
+  - 콘텐츠 생성 완료 건수/사용자/월 ≥ 10
+  - 평균 생성 소요 시간 ≤ 3분
+  - NPS ≥ 50
+
+## 4. 타깃 사용자(Target Audience)
+### Primary Users
+- 1인‧소규모 온라인 사업자(25~45세)
+- 스타트업 마케터, 프리랜서 셀러
+- 니즈: 빠르고 저렴한 콘텐츠 제작, SEO 최적화, 다양한 포맷 지원
+### Secondary Users
+- 마케팅 대행사(서포트 도구), 교육기관(실습용), VC·엑셀러레이터(포트폴리오 관리)
+
+## 5. 사용자 스토리(User Stories)
+- As a 소상공인, I want AI에게 키워드만 입력해 SEO 글을 받아 시간을 절약하고 싶다.
+- As a 마케터, I want SNS 주제 캘린더를 자동 제안받아 캠페인 기획을 빠르게 끝내고 싶다.
+- As an 이커머스 셀러, I want 상세페이지 요소(헤드라인, USP, 이미지 가이드)를 자동 생성해 전환율을 높이고 싶다.
+- As a 사용자, I want 내 브랜드 정보(톤, 키워드)를 저장해 일관된 결과를 받고 싶다.
+
+## 6. 기능 요구사항(Functional Requirements)
+### 핵심 기능(Core Features)
+1. SEO 기반 글쓰기 자동화  
+   - 입력: 키워드·분야·톤  
+   - 출력: 제목, 목차, 본문(>1,000자), 메타 설명  
+   - Acceptance: SEO 점수 >80/100, 키워드 포함률 ≥2%, 생성 ≤60초
+
+2. SNS 콘텐츠 기획  
+   - 입력: 캠페인 목표, 기간, 대상 SNS  
+   - 출력: 30일 캘린더, 게시물별 카피·해시태그·이미지 프롬프트  
+   - Acceptance: 중복 해시태그 <10%, 톤 & 브랜드 가이드 반영률 90%
+
+3. 상세페이지 기획  
+   - 입력: 제품 특징, 고객 페르소나  
+   - 출력: 헤드라인, 핵심 Benefit 5개, FAQ, 이미지 콘셉트  
+   - Acceptance: USP 포함률 100%, 가독성 점수 >70(Flesch-Kincaid)
+
+### 지원 기능(Supporting Features)
+- 브랜드/톤/키워드 “나만의 정보” 저장·불러오기
+- 콘텐츠 버전·히스토리 관리 및 즐겨찾기
+- 워크스페이스 협업(공동 편집, 댓글)
+- 내보내기: PDF, DOCX, HTML, SNS API 바로 업로드
+- 대시보드: 생성 횟수, 퍼포먼스, SEO 점수 분석
+
+## 7. 비기능 요구사항(Non-Functional Requirements)
+- Performance: 평균 응답 ≤2초, 동시요청 1,000 RPS
+- Security: OAuth2, JWT, AES-256 저장 암호화, GDPR·개인정보보호법 준수
+- Usability: Onboarding <3min, UX 연구 기반 NNG 수준
+- Scalability: 멀티테넌트, 마이크로서비스, 오토스케일링(K8s)
+- Compatibility: Chrome, Safari, Edge 최신 2버전 / iOS 14+, Android 11+
+
+## 8. 기술 고려사항(Technical Considerations)
+- 아키텍처:  
+  - Front: Next.js(React) + Tailwind;  
+  - Mobile: React Native → Expo 빌드;  
+  - Back: Node.js(BFF) + Python FastAPI(AI 서비스);  
+  - AI: OpenAI GPT-4/3.5-turbo + 자체 파인튜닝 모델;  
+  - DB: PostgreSQL(서비스) + Redis(세션) + S3(콘텐츠 저장)
+- 인프라: AWS (EKS, Lambda for webhooks), CDN(CloudFront)
+- 통합: GPT API, SNS Graph API(Facebook, Instagram, LinkedIn, X), Google Analytics
+- 데이터 파이프라인: 로그→Kinesis→Redshift→Metabase
+- 장애대응: Circuit Breaker, Rate Limiter, Retry Queue
+
+## 9. 성공 지표(KPIs)
+- 사용자 지표: MAU, DAU/MAU≥25%, retention D30≥40%
+- 비즈니스 지표: 유료 전환율 8%+, ARPU $30+
+- 기술 지표: 500 오류율 <0.1%, 평균 응답 95p ≤1.5s
+
+## 10. 일정 및 마일스톤(Timeline and Milestones)
+- Phase 0(4주): 요구사항 확정, UX 리서치, UI 와이어프레임
+- Phase 1 MVP(8주): 계정·SEO 글쓰기·브랜드 저장, Web only
+- Phase 2 Beta(6주): SNS 기획, 상세페이지, 모바일 앱 알파
+- Phase 3 GA(8주): 협업, 대시보드, 다국어, 모바일 GA
+- Phase 4 Growth(지속): AI 파인튜닝, 마켓플레이스 연동, 엔터프라이즈 기능
+
+## 11. 위험 및 대응(Risks and Mitigation)
+- AI 결과품질 편차 → 커스텀 프롬프트·파인튜닝·Human-in-the-loop
+- API 비용 급증 → 캐싱·로컬 모델 병행, 사용량 기반 요금제
+- 개인정보 노출 → 민감정보 필터링, 프라이버시 게이트
+- 사용자 유입 저조 → 무료 크레딧 제공, 파트너십 마케팅
+- 법적 규제 변화 → 법무 리뷰 주기, 약관·삭제 프로세스 업데이트
+
+## 12. 향후 고려사항(Future Considerations)
+- 영상·이미지 생성 AI 통합(멀티모달)
+- 마켓플레이스(템플릿, 프롬프트) 구축
+- AI 성과 최적화 추천(AB 테스트 자동화)
+- Open API로 SaaS·CMS 연동
+- 엔터프라이즈 SSO, 팀별 Role 관리, SLA 제공

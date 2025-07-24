@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(curl:*)",
+      "mcp__vooster-ai__update_task_status",
+      "mcp__vooster-ai__get_next_task",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(rm:*)",
+      "Bash(git reset:*)"
+    ],
+    "deny": []
+  }
+}

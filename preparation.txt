@@ -1,0 +1,48 @@
+# 프로젝트 실행을 위한 환경 변수 및 API 키 목록
+
+## 1. AI 및 외부 API
+
+### Google Gemini API
+- **GEMINI_API_KEY**: Google AI Studio 또는 Google Cloud Platform에서 발급받은 API 키
+- **GEMINI_MODEL_NAME**: 사용할 모델명 (문서 기준: gemini-2.5-pro)
+
+### Naver API (검색어 트렌드)
+- **NAVER_CLIENT_ID**: Naver Developers에서 발급받은 클라이언트 ID
+- **NAVER_CLIENT_SECRET**: Naver Developers에서 발급받은 클라이언트 시크릿
+
+### 소셜 로그인 (OAuth 2.0)
+- **GOOGLE_CLIENT_ID**: Google Cloud Platform에서 발급받은 OAuth 2.0 클라이언트 ID
+- **GOOGLE_CLIENT_SECRET**: Google Cloud Platform에서 발급받은 OAuth 2.0 클라이언트 시크릿
+- **KAKAO_CLIENT_ID**: Kakao Developers에서 발급받은 REST API 키
+# (필요 시 다른 소셜 로그인 제공자 정보 추가)
+
+## 2. 데이터베이스 및 스토리지 (AWS)
+
+### PostgreSQL (Amazon RDS)
+- **DB_HOST**: 데이터베이스 서버 주소
+- **DB_PORT**: 데이터베이스 포트 (예: 5432)
+- **DB_USER**: 데이터베이스 사용자 이름
+- **DB_PASSWORD**: 데이터베이스 접속 비밀번호
+- **DB_NAME**: 데이터베이스 이름
+
+### Redis (Amazon ElastiCache)
+- **REDIS_HOST**: Redis 서버 주소
+- **REDIS_PORT**: Redis 포트 (예: 6379)
+- **REDIS_PASSWORD**: (설정된 경우) Redis 접속 비밀번호
+
+### Amazon S3 (파일 스토리지)
+- **AWS_ACCESS_KEY_ID**: AWS IAM 사용자 액세스 키
+- **AWS_SECRET_ACCESS_KEY**: AWS IAM 사용자 시크릿 액세스 키
+- **AWS_S3_BUCKET_NAME**: 파일을 저장할 S3 버킷 이름
+- **AWS_REGION**: S3 버킷이 위치한 AWS 리전
+
+## 3. 프론트엔드-백엔드 연동
+
+### Frontend (.env.local)
+- **NEXT_PUBLIC_API_BASE_URL**: 배포된 백엔드 API 서버의 기본 URL (예: https://api.yourdomain.com/v1)
+
+## 4. 보안 및 기타
+
+### JWT (JSON Web Token)
+- **JWT_SECRET_KEY**: JWT 서명에 사용할 비밀 키 (충분히 길고 복잡한 문자열)
+- **JWT_ALGORITHM**: 사용할 알고리즘 (예: HS256)

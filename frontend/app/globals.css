@@ -7,11 +7,7 @@
 :root {
   --background: #f2f1ed;
   --text: #131313;
-  --primary: #3b82f6;
-  --secondary: #6b7280;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --white: #FFFFFF;
 }
 
 /* 글로벌 스타일 */
@@ -38,5 +34,5 @@ input, textarea, select {
 /* 포커스 스타일 개선 */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(19, 19, 19, 0.1);
 }

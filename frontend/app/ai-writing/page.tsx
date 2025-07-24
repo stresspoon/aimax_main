@@ -260,7 +260,7 @@ export default function AIWriting() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-text mb-2">
-            ✍️ SEO 기반 글쓰기
+            SEO 기반 글쓰기
           </h1>
           <p className="text-text/70 text-lg">
             단계별로 진행하여 SEO 최적화된 고품질 블로그 글을 생성합니다
@@ -273,13 +273,13 @@ export default function AIWriting() {
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentStep >= step ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                  currentStep >= step ? 'bg-text text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {step}
                 </div>
                 {step < 4 && (
                   <div className={`w-16 h-1 mx-2 ${
-                    currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                    currentStep > step ? 'bg-text' : 'bg-gray-200'
                   }`}></div>
                 )}
               </div>
@@ -310,7 +310,7 @@ export default function AIWriting() {
                     value={step1Data.topic}
                     onChange={(e) => setStep1Data({ topic: e.target.value })}
                     placeholder="예: 디지털 마케팅, 홈트레이닝, 재테크 방법"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text ${
                       errors.topic ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -321,7 +321,7 @@ export default function AIWriting() {
                 {apiError && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                     <div className="flex items-start">
-                      <div className="text-red-400 mr-3 mt-0.5">⚠️</div>
+                      <div className="text-red-400 mr-3 mt-0.5">!</div>
                       <div className="flex-1">
                         <p className="text-red-800 text-sm">{apiError}</p>
                         <button
@@ -329,7 +329,7 @@ export default function AIWriting() {
                             setApiError('');
                             generateSEOTitle();
                           }}
-                          className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium underline"
+                          className="mt-2 text-text hover:text-text/80 text-sm font-medium underline"
                         >
                           다시 시도
                         </button>
@@ -341,7 +341,7 @@ export default function AIWriting() {
                 <button
                   onClick={generateSEOTitle}
                   disabled={isLoading}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-text text-white py-3 px-6 rounded-lg font-medium hover:bg-text/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <>
@@ -349,7 +349,7 @@ export default function AIWriting() {
                       AI가 SEO 제목을 생성하고 있습니다...
                     </>
                   ) : (
-                    '🎯 SEO 제목 생성하기'
+                    'SEO 제목 생성하기'
                   )}
                 </button>
               </div>
@@ -373,7 +373,7 @@ export default function AIWriting() {
                     value={step2Data.editedTitle}
                     onChange={(e) => setStep2Data(prev => ({ ...prev, editedTitle: e.target.value }))}
                     rows={3}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none ${
                       errors.title ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -387,7 +387,7 @@ export default function AIWriting() {
                   </label>
                   <div className="grid grid-cols-2 gap-4">
                     <label className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      step2Data.contentType === 'informational' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                      step2Data.contentType === 'informational' ? 'border-text bg-text/5' : 'border-gray-200 hover:border-gray-300'
                     }`}>
                       <input
                         type="radio"
@@ -398,14 +398,14 @@ export default function AIWriting() {
                         className="sr-only"
                       />
                       <div className="text-center">
-                        <div className="text-2xl mb-2">📚</div>
+                        <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
                         <h3 className="font-semibold text-text mb-1">정보성</h3>
                         <p className="text-sm text-gray-600">독자에게 유용한 정보와 지식을 제공하는 글</p>
                       </div>
                     </label>
                     
                     <label className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      step2Data.contentType === 'sales' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                      step2Data.contentType === 'sales' ? 'border-text bg-text/5' : 'border-gray-200 hover:border-gray-300'
                     }`}>
                       <input
                         type="radio"
@@ -416,7 +416,7 @@ export default function AIWriting() {
                         className="sr-only"
                       />
                       <div className="text-center">
-                        <div className="text-2xl mb-2">💰</div>
+                        <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
                         <h3 className="font-semibold text-text mb-1">판매성</h3>
                         <p className="text-sm text-gray-600">제품이나 서비스 판매를 목적으로 하는 글</p>
                       </div>
@@ -427,7 +427,7 @@ export default function AIWriting() {
 
                 <button
                   onClick={proceedToKeywords}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="w-full bg-text text-white py-3 px-6 rounded-lg font-medium hover:bg-text/90 transition-colors"
                 >
                   다음 단계로 →
                 </button>
@@ -451,15 +451,15 @@ export default function AIWriting() {
                     <button
                       onClick={getKeywordRecommendations}
                       disabled={isLoading}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                      className="text-text hover:text-text/80 text-sm font-medium flex items-center gap-1"
                     >
                       {isLoading ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-text"></div>
                           추천 중...
                         </>
                       ) : (
-                        <>🔍 키워드 추천</>
+                        <>키워드 추천</>
                       )}
                     </button>
                   </div>
@@ -468,7 +468,7 @@ export default function AIWriting() {
                     value={step3Data.primaryKeyword}
                     onChange={(e) => setStep3Data(prev => ({ ...prev, primaryKeyword: e.target.value }))}
                     placeholder="글의 핵심이 되는 키워드를 입력하세요"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text ${
                       errors.primaryKeyword ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -491,12 +491,12 @@ export default function AIWriting() {
                           setStep3Data(prev => ({ ...prev, subKeywords: newSubKeywords }));
                         }}
                         placeholder={`보조 키워드 ${index + 1}`}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text"
                       />
                     ))}
                     <button
                       onClick={() => setStep3Data(prev => ({ ...prev, subKeywords: [...prev.subKeywords, ''] }))}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      className="text-text hover:text-text/80 text-sm font-medium"
                     >
                       + 보조 키워드 추가
                     </button>
@@ -508,7 +508,7 @@ export default function AIWriting() {
                 {apiError && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                     <div className="flex items-start">
-                      <div className="text-red-400 mr-3 mt-0.5">⚠️</div>
+                      <div className="text-red-400 mr-3 mt-0.5">!</div>
                       <div className="flex-1">
                         <p className="text-red-800 text-sm">{apiError}</p>
                         <button
@@ -528,7 +528,7 @@ export default function AIWriting() {
                 <button
                   onClick={generateContent}
                   disabled={isLoading}
-                  className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-text text-white py-3 px-6 rounded-lg font-medium hover:bg-text/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {isLoading ? (
                     <>
@@ -536,7 +536,7 @@ export default function AIWriting() {
                       AI가 글을 생성하고 있습니다...
                     </>
                   ) : (
-                    '✨ 글 생성 시작'
+                    '글 생성 시작'
                   )}
                 </button>
               </div>
@@ -552,35 +552,35 @@ export default function AIWriting() {
                 </h2>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600">
-                    총 <span className="font-semibold text-blue-600">{generatedContent.totalCharCount.toLocaleString()}</span>자
+                    총 <span className="font-semibold text-text">{generatedContent.totalCharCount.toLocaleString()}</span>자
                   </span>
                   <button
                     onClick={copyToClipboard}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                    className="bg-text text-white px-4 py-2 rounded-lg font-medium hover:bg-text/90 transition-colors"
                   >
-                    📄 전체 복사
+                    전체 복사
                   </button>
                 </div>
               </div>
 
               {/* SEO 메트릭 */}
               <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-text mb-4">📊 SEO 분석 결과</h3>
+                <h3 className="text-lg font-semibold text-text mb-4">SEO 분석 결과</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${seoMetrics.seo_score >= 80 ? 'text-green-600' : seoMetrics.seo_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <div className="text-2xl font-bold text-text">
                       {seoMetrics.seo_score}점
                     </div>
                     <div className="text-sm text-gray-600">SEO 점수</div>
                   </div>
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${seoMetrics.keyword_density >= 2 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="text-2xl font-bold text-text">
                       {seoMetrics.keyword_density}%
                     </div>
                     <div className="text-sm text-gray-600">키워드 밀도</div>
                   </div>
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${seoMetrics.readability_score >= 70 ? 'text-green-600' : seoMetrics.readability_score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <div className="text-2xl font-bold text-text">
                       {seoMetrics.readability_score}점
                     </div>
                     <div className="text-sm text-gray-600">가독성 점수</div>
@@ -591,7 +591,7 @@ export default function AIWriting() {
               {/* 목차 */}
               {contentOutline.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-text mb-4">📋 목차</h3>
+                  <h3 className="text-lg font-semibold text-text mb-4">목차</h3>
                   <ol className="list-decimal list-inside space-y-1">
                     {contentOutline.map((item, index) => (
                       <li key={index} className="text-text">{item}</li>
@@ -603,7 +603,7 @@ export default function AIWriting() {
               {/* 메타 설명 */}
               {metaDescription && (
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-text mb-4">🏷️ 메타 설명</h3>
+                  <h3 className="text-lg font-semibold text-text mb-4">메타 설명</h3>
                   <p className="text-text text-sm leading-relaxed">{metaDescription}</p>
                   <div className="text-right mt-2">
                     <span className="text-gray-500 text-xs">{metaDescription.length}/160자</span>
@@ -619,7 +619,7 @@ export default function AIWriting() {
                     value={generatedContent.sections.introduction}
                     onChange={(e) => updateSection('introduction', e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
                   />
                 </div>
 
@@ -631,7 +631,7 @@ export default function AIWriting() {
                       value={section}
                       onChange={(e) => updateBodySection(index, e.target.value)}
                       rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
                     />
                   </div>
                 ))}
@@ -643,7 +643,7 @@ export default function AIWriting() {
                     value={generatedContent.sections.conclusion}
                     onChange={(e) => updateSection('conclusion', e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
                   />
                 </div>
               </div>

@@ -16,7 +16,7 @@ export default function Home() {
           </p>
           <Link 
             href="/dashboard"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="inline-block bg-text text-white px-6 py-3 rounded-lg font-medium hover:bg-text/90 transition-colors"
           >
             대시보드로 이동
           </Link>

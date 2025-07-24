@@ -10,11 +10,7 @@ module.exports = {
       colors: {
         'background': '#f2f1ed',
         'text': '#131313',
-        'primary': '#3b82f6',
-        'secondary': '#6b7280',
-        'success': '#10b981',
-        'warning': '#f59e0b',
-        'error': '#ef4444',
+        'white': '#FFFFFF',
       },
       fontFamily: {
         'pretendard': ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', '"Helvetica Neue"', '"Segoe UI"', '"Apple SD Gothic Neo"', '"Noto Sans KR"', '"Malgun Gothic"', 'sans-serif'],

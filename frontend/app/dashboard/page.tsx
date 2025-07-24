@@ -13,7 +13,7 @@ export default function Dashboard() {
       id: 'seo-writing',
       title: 'SEO 기반 글쓰기',
       description: 'AI가 키워드를 분석해 SEO 최적화된 블로그 글을 자동으로 생성합니다',
-      icon: '✍️',
+      icon: '',
       isActive: true,
       href: '/ai-writing'
     },
@@ -21,7 +21,7 @@ export default function Dashboard() {
       id: 'sns-content',
       title: 'SNS 콘텐츠 기획',
       description: '30일 캘린더와 게시물별 카피, 해시태그를 자동 생성합니다',
-      icon: '📱',
+      icon: '',
       isActive: false,
       href: '/sns-content'
     },
@@ -29,7 +29,7 @@ export default function Dashboard() {
       id: 'product-page',
       title: '상세페이지 기획',
       description: '제품 특징을 분석해 매력적인 상세페이지 요소를 생성합니다',
-      icon: '🛍️',
+      icon: '',
       isActive: false,
       href: '/product-page'
     }
@@ -55,7 +55,7 @@ export default function Dashboard() {
                 relative bg-white rounded-lg p-6 shadow-sm border border-gray-200
                 transition-all duration-200 hover:shadow-md cursor-pointer
                 ${feature.isActive 
-                  ? 'hover:border-blue-300' 
+                  ? 'hover:border-text/30' 
                   : 'opacity-75'
                 }
               `}
@@ -96,8 +96,8 @@ export default function Dashboard() {
                 </div>
               )}
               
-              <div className="text-4xl mb-4" aria-hidden="true">
-                {feature.icon}
+              <div className="h-16 mb-4 flex items-center justify-center" aria-hidden="true">
+                <div className="w-12 h-12 bg-text/10 rounded-lg"></div>
               </div>
               
               <h2 className="text-xl font-semibold text-text mb-2">
@@ -109,7 +109,7 @@ export default function Dashboard() {
               </p>
               
               {feature.isActive && (
-                <div className="mt-4 flex items-center text-blue-600 text-sm font-medium">
+                <div className="mt-4 flex items-center text-text text-sm font-medium">
                   시작하기
                   <span className="ml-1" aria-hidden="true">→</span>
                 </div>
@@ -139,7 +139,9 @@ export default function Dashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="text-5xl mb-4">🚧</div>
+              <div className="w-16 h-16 bg-text/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <div className="w-8 h-8 bg-text/20 rounded"></div>
+              </div>
               <h2 id="modal-title" className="text-2xl font-semibold text-text mb-2">
                 {modalContent.title}
               </h2>
@@ -151,7 +153,7 @@ export default function Dashboard() {
               </p>
               <button
                 onClick={() => setShowModal(false)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="bg-text text-white px-6 py-3 rounded-lg font-medium hover:bg-text/90 transition-colors"
                 autoFocus
               >
                 확인

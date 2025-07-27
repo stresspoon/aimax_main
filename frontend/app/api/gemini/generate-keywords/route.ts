@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getKeywordGuideline } from '../../../utils/contentGuidelines';
-import { safeJSONParse } from '../../../utils/safeJson';
+import { getKeywordGuideline } from '@/utils/contentGuidelines';
+import { safeJSONParse } from '@/utils/safeJson';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 

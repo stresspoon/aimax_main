@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { LoginButton } from '../components/auth/LoginButton';
 
@@ -76,19 +77,18 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Hero Image Placeholder with enhanced styling */}
+          {/* Hero Image with AIMAX Dashboard Preview */}
           <div className="relative w-full max-w-5xl mx-auto">
             <div className="absolute -inset-4 bg-gradient-to-r from-text/20 via-transparent to-text/20 rounded-3xl blur-2xl"></div>
-            <div className="relative w-full h-80 bg-white rounded-3xl shadow-2xl border border-gray-200 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-center">
-                <div className="text-6xl mb-4">💻</div>
-                <div className="text-text/50 text-lg font-medium">
-                  AIMAX 대시보드 미리보기
-                </div>
-                <div className="text-text/30 text-sm mt-2">
-                  실제 인터페이스 이미지가 여기에 들어갑니다
-                </div>
-              </div>
+            <div className="relative w-full rounded-3xl overflow-hidden shadow-2xl border border-gray-200">
+              <Image
+                src="/landing_main.png"
+                alt="AIMAX 대시보드 미리보기"
+                width={1280}
+                height={800}
+                className="w-full h-auto"
+                priority
+              />
             </div>
           </div>
         </div>

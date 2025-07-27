@@ -47,7 +47,7 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold text-text mb-6 tracking-tight leading-tight">
-            글 하나로 시작된<br />
+            글 하나로 시작되는<br />
             <span className="bg-gradient-to-r from-text to-text/70 bg-clip-text text-transparent">자동화</span>
           </h1>
           <p className="text-2xl md:text-3xl text-text mb-4 font-semibold">

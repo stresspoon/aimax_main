@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
       제목만 출력하고 다른 설명은 하지 마세요.
     `;
 
-    const result: any = await Promise.race([
+    const result = await Promise.race([
       model.generateContent(prompt),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 30000)
       )
-    ]);
+    ]) as Awaited<ReturnType<typeof model.generateContent>>;
 
     const response = result.response;
     const title = response.text().trim();

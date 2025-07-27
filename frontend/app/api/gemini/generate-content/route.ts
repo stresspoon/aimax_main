@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const result: any = await Promise.race([
+    const result = await Promise.race([
       model.generateContent(prompt),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 90000)
       )
-    ]);
+    ]) as Awaited<ReturnType<typeof model.generateContent>>;
 
     const response = result.response;
     const text = response.text().trim();

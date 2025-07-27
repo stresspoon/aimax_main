@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getContentGuideline } from '../../../utils/contentGuidelines';
 import { safeJSONParse, StreamingJSONAccumulator } from '../../../utils/safeJson';
-import { generateContentSchema } from '../../../utils/validation';
-import { ZodError } from 'zod';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -18,9 +16,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input with Zod
-    const validatedData = generateContentSchema.parse(body);
-    const { topic, title, keywords, contentType } = validatedData;
+    const { topic, title, keywords, contentType } = body;
+
+    if (!topic || !contentType) {
+      return NextResponse.json(
+        { error: '주제와 콘텐츠 타입이 필요합니다.' },
+        { status: 400 }
+      );
+    }
 
     const contentGuideline = getContentGuideline(contentType, topic);
     
@@ -94,12 +97,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
-    }
     
     console.error('콘텐츠 생성 오류:', error);
     

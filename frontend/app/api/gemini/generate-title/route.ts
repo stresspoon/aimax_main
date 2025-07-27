@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { generateTitleSchema } from '../../../utils/validation';
-import { ZodError } from 'zod';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -16,9 +14,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input with Zod
-    const validatedData = generateTitleSchema.parse(body);
-    const { topic, contentType } = validatedData;
+    const { topic, contentType } = body;
+
+    if (!topic || !contentType) {
+      return NextResponse.json(
+        { error: '주제와 콘텐츠 타입이 필요합니다.' },
+        { status: 400 }
+      );
+    }
 
     const prompt = `
       다음 주제에 대한 SEO 최적화된 블로그 제목을 1개만 생성해주세요.
@@ -48,12 +51,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ title });
 
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
-    }
     
     console.error('제목 생성 오류:', error);
     return NextResponse.json(

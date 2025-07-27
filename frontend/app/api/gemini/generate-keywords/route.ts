@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getKeywordGuideline } from '../../../utils/contentGuidelines';
 import { safeJSONParse } from '../../../utils/safeJson';
-import { generateKeywordsSchema } from '../../../utils/validation';
-import { ZodError } from 'zod';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -18,9 +16,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate input with Zod
-    const validatedData = generateKeywordsSchema.parse(body);
-    const { topic, title, contentType } = validatedData;
+    const { topic, title, contentType } = body;
+
+    if (!topic || !title || !contentType) {
+      return NextResponse.json(
+        { error: '주제, 제목, 콘텐츠 타입이 필요합니다.' },
+        { status: 400 }
+      );
+    }
 
     const keywordGuideline = getKeywordGuideline(contentType, topic);
     
@@ -78,12 +81,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
-    }
     
     console.error('키워드 생성 오류:', error);
     return NextResponse.json(

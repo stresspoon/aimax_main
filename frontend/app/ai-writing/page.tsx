@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
+import { AuthGuard } from '../../components/auth/AuthGuard';
+import { LoginButton } from '../../components/auth/LoginButton';
 
 interface Step1Data {
   topic: string;
@@ -248,24 +250,28 @@ export default function AIWriting() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link 
-              href="/dashboard"
-              className="text-text hover:text-text/80 font-medium"
-            >
-              ← 대시보드로 돌아가기
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold text-text mb-2">
-            SEO 기반 글쓰기
-          </h1>
-          <p className="text-text/70 text-lg">
-            단계별로 진행하여 SEO 최적화된 고품질 블로그 글을 생성합니다
-          </p>
-        </header>
+    <AuthGuard>
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
+          <header className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <Link 
+                href="/dashboard"
+                className="text-text hover:text-text/80 font-medium"
+              >
+                ← 대시보드로 돌아가기
+              </Link>
+              <div className="hidden md:block">
+                <LoginButton />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-text mb-2">
+              SEO 기반 글쓰기
+            </h1>
+            <p className="text-text/70 text-lg">
+              단계별로 진행하여 SEO 최적화된 고품질 블로그 글을 생성합니다
+            </p>
+          </header>
 
         {/* Progress Indicator */}
         <div className="mb-8">
@@ -652,5 +658,6 @@ export default function AIWriting() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

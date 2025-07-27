@@ -1,0 +1,312 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.4.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.9:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1813ms
+ ○ Compiling / ...
+ ✓ Compiled / in 656ms (589 modules)
+ GET / 200 in 458ms
+ GET / 200 in 909ms
+ ✓ Compiled /dashboard in 383ms (602 modules)
+ GET /dashboard 200 in 491ms
+ ✓ Compiled /ai-writing in 181ms (611 modules)
+ GET /ai-writing 200 in 248ms
+ ✓ Compiled in 750ms (614 modules)
+ GET /ai-writing 200 in 114ms
+ ✓ Compiled /dashboard in 151ms (382 modules)
+ GET /dashboard 200 in 300ms
+ GET /ai-writing 200 in 33ms
+ ✓ Compiled in 394ms (620 modules)
+ GET /ai-writing 200 in 84ms
+ ✓ Compiled in 198ms (614 modules)
+ GET /ai-writing 200 in 114ms
+ ✓ Compiled in 382ms (614 modules)
+ GET /ai-writing 200 in 106ms
+ ✓ Compiled in 445ms (614 modules)
+ GET /ai-writing 200 in 101ms
+ ✓ Compiled in 330ms (614 modules)
+ GET /ai-writing 200 in 57ms
+ ✓ Compiled in 114ms (614 modules)
+ GET /ai-writing 200 in 58ms
+ ✓ Compiled in 375ms (614 modules)
+ GET /ai-writing 200 in 94ms
+ ✓ Compiled in 165ms (616 modules)
+ GET /ai-writing 200 in 84ms
+ ✓ Compiled in 149ms (616 modules)
+ GET /ai-writing 200 in 64ms
+ GET /ai-writing 200 in 41ms
+ ✓ Compiled in 301ms (616 modules)
+ GET /ai-writing 200 in 63ms
+ ✓ Compiled in 106ms (616 modules)
+ GET /ai-writing 200 in 70ms
+ ✓ Compiled in 136ms (616 modules)
+ GET /ai-writing 200 in 54ms
+ ✓ Compiled in 205ms (616 modules)
+ GET /ai-writing 200 in 61ms
+ ✓ Compiled in 148ms (616 modules)
+ GET /ai-writing 200 in 80ms
+ ✓ Compiled /dashboard in 210ms (383 modules)
+ GET /dashboard 200 in 340ms
+ GET /ai-writing 200 in 29ms
+ ✓ Compiled in 283ms (622 modules)
+ GET /ai-writing 200 in 89ms
+ ✓ Compiled in 334ms (616 modules)
+ GET /ai-writing 200 in 121ms
+ ✓ Compiled in 159ms (616 modules)
+ GET /ai-writing 200 in 85ms
+ GET /ai-writing 200 in 31ms
+ ✓ Compiled in 299ms (616 modules)
+ GET /ai-writing 200 in 94ms
+ ✓ Compiled in 135ms (618 modules)
+ GET /ai-writing 200 in 83ms
+ ✓ Compiled in 150ms (618 modules)
+ GET /ai-writing 200 in 62ms
+ ✓ Compiled in 130ms (618 modules)
+ GET /ai-writing 200 in 73ms
+ ✓ Compiled in 177ms (618 modules)
+ GET /ai-writing 200 in 60ms
+ ✓ Compiled /dashboard in 372ms (384 modules)
+ GET /dashboard 200 in 520ms
+ GET /ai-writing 200 in 26ms
+ ✓ Compiled in 351ms (618 modules)
+ GET /ai-writing 200 in 130ms
+ ✓ Compiled in 256ms (618 modules)
+ GET /ai-writing 200 in 100ms
+ ✓ Compiled /dashboard in 146ms (384 modules)
+ GET /dashboard 200 in 293ms
+ GET /ai-writing 200 in 27ms
+ GET /dashboard 200 in 20ms
+ ✓ Compiled / in 248ms (389 modules)
+ GET / 200 in 491ms
+ ✓ Compiled in 368ms (629 modules)
+ GET / 200 in 114ms
+ GET /dashboard 200 in 60ms
+ ⨯ ./app/page.tsx
+Error:   [31mx[0m You're importing a component that needs `useState`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  [31m|[0m
+  [31m|[0m  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4m/Users/designers/Downloads/aimax/frontend/app/page.tsx[0m:2:1]
+ [2m1[0m | import Link from 'next/link';
+ [2m2[0m | import { useState } from 'react';
+   : [35;1m         ^^^^^^^^[0m
+ [2m3[0m | 
+ [2m4[0m | export default function Home() {
+ [2m5[0m |   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+   `----
+
+Import trace for requested module:
+./app/page.tsx
+ ○ Compiling /_error ...
+ ⨯ ./app/page.tsx
+Error:   [31mx[0m You're importing a component that needs `useState`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  [31m|[0m
+  [31m|[0m  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  [31m|[0m
+
+   ,-[[36;1;4m/Users/designers/Downloads/aimax/frontend/app/page.tsx[0m:2:1]
+ [2m1[0m | import Link from 'next/link';
+ [2m2[0m | import { useState } from 'react';
+   : [35;1m         ^^^^^^^^[0m
+ [2m3[0m | 
+ [2m4[0m | export default function Home() {
+ [2m5[0m |   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
+   `----
+
+Import trace for requested module:
+./app/page.tsx
+ GET / 500 in 1982ms
+ GET / 500 in 6ms
+ GET / 500 in 7ms
+ GET / 500 in 9ms
+ ✓ Compiled /_not-found in 511ms (949 modules)
+ GET /_next/static/webpack/8b29f2e1cb11974c.webpack.hot-update.json 404 in 699ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 90ms
+ ✓ Compiled in 186ms (963 modules)
+ GET / 200 in 93ms
+ ✓ Compiled in 260ms (963 modules)
+ GET / 200 in 77ms
+ ✓ Compiled in 485ms (871 modules)
+ GET / 200 in 132ms
+ ✓ Compiled in 596ms (871 modules)
+ GET / 200 in 123ms
+ ✓ Compiled in 306ms (871 modules)
+ GET / 200 in 62ms
+ GET /dashboard 200 in 37ms
+ GET /ai-writing 200 in 17ms
+   Reload env: .env.local
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 3.4s (871 modules)
+ GET / 200 in 1317ms
+ GET / 200 in 13ms
+ ✓ Compiled in 121ms (388 modules)
+ GET / 200 in 15ms
+ GET / 200 in 19ms
+ ✓ Compiled in 248ms (857 modules)
+ GET / 200 in 83ms
+ ✓ Compiled in 141ms (388 modules)
+ GET / 200 in 17ms
+ GET / 200 in 121ms
+ ✓ Compiled in 1103ms (857 modules)
+ GET / 200 in 56ms
+ ✓ Compiled in 648ms (857 modules)
+ GET / 200 in 486ms
+ GET / 200 in 7ms
+ ✓ Compiled in 416ms (871 modules)
+ GET / 200 in 77ms
+ ✓ Compiled in 391ms (871 modules)
+ GET / 200 in 58ms
+ GET /dashboard 200 in 22ms
+ GET /ai-writing 200 in 24ms
+ ✓ Compiled in 263ms (867 modules)
+ GET / 200 in 60ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 149ms (865 modules)
+ GET / 200 in 209ms
+ GET / 200 in 223ms
+ ✓ Compiled in 243ms (865 modules)
+ GET / 200 in 55ms
+ ✓ Compiled in 231ms (865 modules)
+ GET / 200 in 54ms
+ ✓ Compiled in 59ms (385 modules)
+ GET / 200 in 12ms
+ ✓ Compiled in 64ms (385 modules)
+ GET / 200 in 20ms
+ ✓ Compiled in 71ms (385 modules)
+ GET / 200 in 16ms
+ ✓ Compiled in 57ms (385 modules)
+ GET / 200 in 11ms
+ ✓ Compiled in 192ms (385 modules)
+ GET / 200 in 17ms
+ ✓ Compiled in 397ms (385 modules)
+ GET / 200 in 17ms
+ GET /dashboard 200 in 51ms
+ GET /dashboard 200 in 130ms
+ GET / 200 in 25ms
+ GET /dashboard 200 in 51ms
+ GET /ai-writing 200 in 27ms
+ GET /dashboard 200 in 20ms
+ ⨯ ./app/ai-writing/page.tsx
+Module parse failed: Identifier 'seoMetrics' has already been declared (108:11)
+|     };
+|     // 생성된 콘텐츠 상태 확장
+>     const [seoMetrics, setSeoMetrics] = useState({
+|         seo_score: 0,
+|         keyword_density: 0,
+
+Import trace for requested module:
+./app/ai-writing/page.tsx
+ ⨯ ./app/ai-writing/page.tsx
+Module parse failed: Identifier 'seoMetrics' has already been declared (79:11)
+|     };
+|     // 생성된 콘텐츠 상태 확장
+>     const [seoMetrics, setSeoMetrics] = useState({
+|         seo_score: 0,
+|         keyword_density: 0,
+
+Import trace for requested module:
+./app/ai-writing/page.tsx
+ ⨯ ./app/ai-writing/page.tsx
+Module parse failed: Identifier 'seoMetrics' has already been declared (72:11)
+|     };
+|     // 생성된 콘텐츠 상태 확장
+>     const [seoMetrics, setSeoMetrics] = useState({
+|         seo_score: 0,
+|         keyword_density: 0,
+
+Import trace for requested module:
+./app/ai-writing/page.tsx
+ ⨯ ./app/ai-writing/page.tsx
+Module parse failed: Identifier 'seoMetrics' has already been declared (72:11)
+|     };
+|     // 생성된 콘텐츠 상태 확장
+>     const [seoMetrics, setSeoMetrics] = useState({
+|         seo_score: 0,
+|         keyword_density: 0,
+
+Import trace for requested module:
+./app/ai-writing/page.tsx
+ ○ Compiling /_error ...
+ GET / 500 in 519ms
+ ✓ Compiled /_not-found in 1141ms (1123 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /_next/static/webpack/8b29f2e1cb11974c.webpack.hot-update.json 404 in 845ms
+ GET / 200 in 59ms
+ ✓ Compiled in 154ms (441 modules)
+ GET / 200 in 28ms
+ ✓ Compiled in 82ms (441 modules)
+ GET / 200 in 11ms
+ ✓ Compiled in 540ms (1132 modules)
+ GET / 200 in 102ms
+   Reload env: .env.local
+ ✓ Compiled in 241ms (1118 modules)
+ GET / 200 in 94ms
+ ✓ Compiled in 94ms (437 modules)
+ GET / 200 in 25ms
+ GET / 200 in 41ms
+ ✓ Compiled in 412ms (1118 modules)
+ GET / 200 in 64ms
+ ✓ Compiled in 701ms (1213 modules)
+ GET / 200 in 64ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 1201ms (1429 modules)
+ GET /api/auth/session 200 in 1847ms
+ GET /api/auth/session 200 in 5ms
+ ✓ Compiled in 428ms (1443 modules)
+ GET / 200 in 97ms
+ ✓ Compiled in 207ms (1445 modules)
+ GET / 200 in 100ms
+ ✓ Compiled in 402ms (1445 modules)
+ GET / 200 in 56ms
+ ⨯ ./app/ai-writing/page.tsx
+Error:   [31mx[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     ,-[[36;1;4m/Users/designers/Downloads/aimax/frontend/app/ai-writing/page.tsx[0m:662:1]
+ [2m659[0m |       </div>
+ [2m660[0m |     </div>
+ [2m661[0m |   );
+ [2m662[0m | }
+     : [35;1m^[0m
+     `----
+  [31mx[0m Unexpected eof
+     ,-[[36;1;4m/Users/designers/Downloads/aimax/frontend/app/ai-writing/page.tsx[0m:662:1]
+ [2m659[0m |       </div>
+ [2m660[0m |     </div>
+ [2m661[0m |   );
+ [2m662[0m | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/ai-writing/page.tsx
+ GET / 500 in 9ms
+ GET / 500 in 6ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 631ms (1209 modules)
+ GET /_next/static/webpack/8b29f2e1cb11974c.webpack.hot-update.json 404 in 816ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 92ms
+ ✓ Compiled /api/auth/[...nextauth] in 127ms (968 modules)
+ GET /api/auth/session 200 in 293ms
+   Reload env: .env.local
+ ✓ Compiled in 344ms (1438 modules)
+ GET / 200 in 67ms
+ ✓ Compiled in 384ms (1447 modules)
+ GET / 200 in 75ms
+ GET /api/auth/session 200 in 69ms
+ GET /api/auth/session 200 in 5ms
+ ✓ Compiled in 363ms (1447 modules)
+ GET / 200 in 123ms
+   Reload env: .env.local
+ ✓ Compiled in 512ms (1204 modules)
+ GET / 200 in 144ms
+[?25h

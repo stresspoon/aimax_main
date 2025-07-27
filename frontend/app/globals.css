@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* 커스텀 배경색 클래스 */
+.bg-text {
+  background-color: #131313;
+}
+
+.bg-text\/90:hover,
+.hover\:bg-text\/90:hover {
+  background-color: rgba(19, 19, 19, 0.9);
+}
+
 /* Pretendard 폰트 임포트 */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
@@ -20,6 +30,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f2f1ed;
+  color: #131313;
 }
 
 /* 기본 컴포넌트 스타일 개선 */
@@ -28,11 +40,34 @@ button {
 }
 
 input, textarea, select {
-  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
 /* 포커스 스타일 개선 */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(19, 19, 19, 0.1);
+  box-shadow: 0 0 0 4px rgba(19, 19, 19, 0.1);
+}
+
+/* 전체적인 에니메이션 스타일 */
+.transform {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f2f1ed;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #131313;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(19, 19, 19, 0.8);
 }

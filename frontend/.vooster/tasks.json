@@ -1,0 +1,86 @@
+{
+  "totalCount": 8,
+  "downloadedAt": "2025-07-27T21:13:39.098Z",
+  "tasks": [
+    {
+      "taskId": "T-001",
+      "summary": "기초 프로젝트 세팅 (프론트 & 백엔드)",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 3,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:26:13.469Z",
+      "updatedAt": "2025-07-24T22:04:35.819Z"
+    },
+    {
+      "taskId": "T-002",
+      "summary": "대시보드 UI/UX 기본 구현",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 3,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:08:24.717Z"
+    },
+    {
+      "taskId": "T-003",
+      "summary": "AI 글쓰기 진입점 및 대시보드 내 네비게이션 구현",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 2,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:10:52.736Z"
+    },
+    {
+      "taskId": "T-004",
+      "summary": "AI 글쓰기 입력/출력 UI 개발",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 4,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:20:48.505Z"
+    },
+    {
+      "taskId": "T-005",
+      "summary": "AI 글쓰기 백엔드 API 구현(Gemini 연동, SEO 기준 반영)",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 5,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:27:19.382Z"
+    },
+    {
+      "taskId": "T-006",
+      "summary": "프론트-백엔드 연동 및 글쓰기 결과 표시",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 4,
+      "urgency": 10,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:37:25.248Z"
+    },
+    {
+      "taskId": "T-007",
+      "summary": "디자인 가이드 적용 및 Pretendard 폰트 세팅",
+      "status": "DONE",
+      "importance": "MUST",
+      "complexity": 2,
+      "urgency": 9,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T22:40:54.064Z"
+    },
+    {
+      "taskId": "T-008",
+      "summary": "구글 로그인(OAuth2) 기능 추가",
+      "status": "BACKLOG",
+      "importance": "SHOULD",
+      "complexity": 4,
+      "urgency": 7,
+      "createdAt": "2025-07-24T21:33:33.901Z",
+      "updatedAt": "2025-07-24T21:33:33.901Z"
+    }
+  ]
+}

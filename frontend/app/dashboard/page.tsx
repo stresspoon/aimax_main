@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LoginButton } from '../../components/auth/LoginButton';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -37,26 +38,36 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-text mb-2">
-            AIMAX 대시보드
-          </h1>
-          <p className="text-text/70 text-lg">
-            AI로 마케팅 콘텐츠를 쉽고 빠르게 제작하세요
-          </p>
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-text mb-4 tracking-tight">
+                AIMAX 대시보드
+              </h1>
+              <p className="text-text text-xl font-light">
+                AI로 마케팅 콘텐츠를 쉽고 빠르게 제작하세요
+              </p>
+            </div>
+            <div className="hidden md:block">
+              <LoginButton />
+            </div>
+          </div>
+          <div className="md:hidden flex justify-center">
+            <LoginButton />
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature) => (
             <div
               key={feature.id}
               className={`
-                relative bg-white rounded-lg p-6 shadow-sm border border-gray-200
-                transition-all duration-200 hover:shadow-md cursor-pointer
+                relative bg-white rounded-2xl p-8 shadow-lg border border-gray-100
+                transition-all duration-300 hover:shadow-xl cursor-pointer hover:transform hover:scale-[1.02]
                 ${feature.isActive 
-                  ? 'hover:border-text/30' 
-                  : 'opacity-75'
+                  ? 'hover:border-text/20 ring-2 ring-text/5' 
+                  : 'opacity-60 hover:opacity-80'
                 }
               `}
               role="button"
@@ -90,38 +101,43 @@ export default function Dashboard() {
             >
               {!feature.isActive && (
                 <div className="absolute top-4 right-4">
-                  <span className="bg-white border border-gray-300 text-gray-700 text-xs px-2 py-1 rounded-full">
+                  <span className="bg-white text-text text-xs px-2 py-1 rounded-full border border-text/30">
                     개발 중
                   </span>
                 </div>
               )}
               
-              <div className="h-16 mb-4 flex items-center justify-center" aria-hidden="true">
-                <div className="w-12 h-12 bg-text/10 rounded-lg"></div>
+              <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+                <div className="w-16 h-16 bg-text/10 rounded-2xl flex items-center justify-center mb-6">
+                  <div className="w-8 h-8 bg-text/20 rounded-lg"></div>
+                </div>
+                <h2 className="text-xl font-bold text-text mb-3 text-center">
+                  {feature.title}
+                </h2>
+                <p className="text-text text-sm leading-relaxed text-center mb-6">
+                  {feature.description}
+                </p>
               </div>
               
-              <h2 className="text-xl font-semibold text-text mb-2">
-                {feature.title}
-              </h2>
-              
-              <p className="text-text/70 text-sm leading-relaxed">
-                {feature.description}
-              </p>
-              
               {feature.isActive && (
-                <div className="mt-4 flex items-center text-text text-sm font-medium">
-                  시작하기
-                  <span className="ml-1" aria-hidden="true">→</span>
+                <div className="mt-auto pt-4">
+                  <div className="bg-text text-white text-sm font-semibold py-2 px-4 rounded-lg text-center">
+                    시작하기
+                  </div>
                 </div>
               )}
             </div>
           ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-text/50 text-sm">
-            더 많은 기능이 곧 출시됩니다
-          </p>
+        <div className="mt-16 text-center">
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-md mx-auto">
+            <div className="w-12 h-12 bg-text/10 rounded-xl mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold text-text mb-2">더 많은 기능들</h3>
+            <p className="text-text text-sm">
+              더 많은 AI 기능이 곧 출시됩니다
+            </p>
+          </div>
         </div>
       </div>
 
@@ -135,25 +151,30 @@ export default function Dashboard() {
           aria-labelledby="modal-title"
         >
           <div 
-            className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-xl"
+            className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-gray-100"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="w-16 h-16 bg-text/10 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <div className="w-8 h-8 bg-text/20 rounded"></div>
+              <div className="w-20 h-20 bg-text/10 rounded-2xl mx-auto mb-6 flex items-center justify-center">
+                <div className="w-10 h-10 bg-text/20 rounded-xl"></div>
               </div>
-              <h2 id="modal-title" className="text-2xl font-semibold text-text mb-2">
+              <h2 id="modal-title" className="text-2xl font-bold text-text mb-3">
                 {modalContent.title}
               </h2>
-              <p className="text-text/70 mb-2">
-                준비 중입니다
-              </p>
-              <p className="text-text/60 text-sm mb-6">
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+                <p className="text-orange-800 font-semibold text-sm mb-1">
+                  현재 개발 중입니다
+                </p>
+                <p className="text-orange-700 text-xs">
+                  빠른 시일 내에 이용 가능할 예정입니다
+                </p>
+              </div>
+              <p className="text-text text-sm mb-8 leading-relaxed">
                 {modalContent.description}
               </p>
               <button
                 onClick={() => setShowModal(false)}
-                className="bg-text text-white px-6 py-3 rounded-lg font-medium hover:bg-text/90 transition-colors"
+                className="w-full bg-text text-white py-3 px-6 rounded-xl font-semibold hover:bg-text/90 transition-all duration-200"
                 autoFocus
               >
                 확인

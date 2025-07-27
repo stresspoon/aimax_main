@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SessionProvider } from "../providers/SessionProvider";
 
 export const metadata: Metadata = {
   title: "AIMAX - 나만의 AI 비지니스 파트너",
@@ -13,8 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className="font-pretendard antialiased bg-background text-text">
-        {children}
+      <body className="font-pretendard antialiased" style={{ backgroundColor: '#f2f1ed', color: '#131313' }}>
+        <SessionProvider>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

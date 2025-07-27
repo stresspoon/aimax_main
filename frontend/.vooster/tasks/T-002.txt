@@ -1,0 +1,27 @@
+# 대시보드 UI/UX 기본 구현
+
+**Task ID:** T-002
+**Status:** DONE
+**Importance:** MUST
+**Complexity:** 3/10
+**Urgency:** 10/10
+**Dependencies:** T-001
+
+## Description
+
+### 설명
+PRD에 정의된 전체 주요 기능 카드를 노출하는 대시보드 레이아웃을 구현합니다.
+### 구현 세부 사항
+1. Next.js pages/dashboard.tsx 컴포넌트 생성
+2. Tailwind CSS 그리드 레이아웃으로 카드 배치
+3. 각 카드에 "개발 중" 뱃지 텍스트 추가, AI 글쓰기 카드만 활성 상태로 표시
+4. 반응형 디자인(mobile, tablet, desktop) 및 웹 접근성(alt, aria-label) 적용
+### 테스트 전략
+- 다양한 화면 크기에서 레이아웃 확인
+- 스크린 리더로 접근성 검증
+- AI 글쓰기 카드 외 클릭 시 동작하지 않는지 확인
+
+---
+
+**Created:** 2025-07-24T21:33:33.901Z
+**Updated:** 2025-07-24T22:08:24.717Z

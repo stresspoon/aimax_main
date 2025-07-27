@@ -1,0 +1,28 @@
+# 구글 로그인(OAuth2) 기능 추가
+
+**Task ID:** T-008
+**Status:** BACKLOG
+**Importance:** SHOULD
+**Complexity:** 4/10
+**Urgency:** 7/10
+**Dependencies:** T-007
+
+## Description
+
+### 설명
+Google OAuth2를 이용해 구글 로그인 기능을 구현하고, 인증된 사용자 세션을 관리합니다.
+### 구현 세부 사항
+1. NextAuth.js 또는 Passport.js로 Google provider 설정
+2. 로그인 버튼 UI 추가 및 인증 플로우 구현
+3. 백엔드에 JWT 세션 발급 및 Redis 세션 저장 로직 추가
+4. 로그인 전후 글쓰기 이용 조건 분기 처리
+5. 로그아웃 및 세션 만료 처리
+### 테스트 전략
+- Google OAuth 로그인/로그아웃 흐름 E2E 테스트
+- 인증된 사용자만 글쓰기 접근 분기 확인
+- 세션 만료 후 재로그인 시나리오 검증
+
+---
+
+**Created:** 2025-07-24T21:33:33.901Z
+**Updated:** 2025-07-24T21:33:33.901Z

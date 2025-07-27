@@ -1,0 +1,27 @@
+# 디자인 가이드 적용 및 Pretendard 폰트 세팅
+
+**Task ID:** T-007
+**Status:** DONE
+**Importance:** MUST
+**Complexity:** 2/10
+**Urgency:** 9/10
+**Dependencies:** T-006
+
+## Description
+
+### 설명
+전역 스타일에 #f2f1ed 배경, #131313 텍스트, Pretendard 폰트를 적용합니다.
+### 구현 세부 사항
+1. tailwind.config.js에 색상(#f2f1ed, #131313) 및 fontFamily 설정
+2. 글로벌 CSS 파일에 @font-face로 Pretendard 폰트 등록
+3. pages/_app.tsx에 global CSS import
+4. 디자인 가이드에 맞춰 버튼, 카드 등 컴포넌트 기본 스타일 수정
+### 테스트 전략
+- 전체 페이지 배경 및 텍스트 색상 일관성 확인
+- Pretendard 폰트 로드 및 렌더링 검증
+- 컴포넌트 스타일(버튼, 카드)의 가이드 준수 확인
+
+---
+
+**Created:** 2025-07-24T21:33:33.901Z
+**Updated:** 2025-07-24T22:40:54.064Z

@@ -1,0 +1,28 @@
+# 프론트-백엔드 연동 및 글쓰기 결과 표시
+
+**Task ID:** T-006
+**Status:** DONE
+**Importance:** MUST
+**Complexity:** 4/10
+**Urgency:** 10/10
+**Dependencies:** T-005
+
+## Description
+
+### 설명
+프론트엔드에서 AI 글쓰기 폼 제출 시 백엔드 API를 호출하고, 응답 결과를 UI에 표시합니다.
+### 구현 세부 사항
+1. pages/ai-writing.tsx에서 axios 또는 fetch로 /generate-content 호출
+2. 요청 전후로 로딩/에러 상태 관리(useState 및 useEffect)
+3. API 응답을 받아 제목·목차·본문·메타 설명 UI에 렌더링
+4. 에러 시 토스트 메시지 표시, 재시도 버튼 제공
+5. 복사 기능 재확인 및 UX 향상 처리
+### 테스트 전략
+- API 호출 시 로딩 스피너 동작 확인
+- 성공 응답 후 UI에 결과 정상 렌더링 검증
+- 에러 발생 시 에러 메시지 및 재시도 동작 확인
+
+---
+
+**Created:** 2025-07-24T21:33:33.901Z
+**Updated:** 2025-07-24T22:37:25.248Z

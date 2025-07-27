@@ -1,0 +1,37 @@
+# 기초 프로젝트 세팅 (프론트 & 백엔드)
+
+**Task ID:** T-001
+**Status:** DONE
+**Importance:** MUST
+**Complexity:** 3/10
+**Urgency:** 10/10
+**Dependencies:** None
+
+## Description
+
+### 설명
+- Next.js + Tailwind CSS 기반 프론트엔드 초기화
+- FastAPI 백엔드 프로젝트 초기화
+- Pretendard 폰트 추가 및 Tailwind 설정
+- 전역 스타일(#f2f1ed, #131313) 적용
+- 환경변수 분리 및 기본 라우팅/페이지 구조 생성
+
+### 구현 세부사항
+1. 프론트엔드: npx create-next-app my-app --typescript
+2. Tailwind CSS 설치 및 tailwind.config.js에 custom font와 색상 설정
+3. public/fonts에 Pretendard 폰트 파일 추가 후 global.css에 @font-face 선언
+4. globals.css에 body { background-color: #f2f1ed; color: #131313; font-family: \"Pretendard\", sans-serif; } 설정
+5. 백엔드: FastAPI 프로젝트 디렉터리 생성 및 app/main.py에 FastAPI 인스턴스 초기화
+6. .env 파일 생성 및 pydantic BaseSettings를 통한 환경변수 로드 구현
+7. 프론트엔드와 백엔드 모두 기본 홈 라우트 및 페이지 컴포넌트 구현
+
+### 테스트 전략
+- npm run dev로 Next.js 서버 실행 후 배경, 폰트, 색상 적용 확인
+- Tailwind 클래스가 적용된 컴포넌트 UI 렌더링 확인
+- uvicorn으로 FastAPI 서버 실행 후 기본 GET 요청 응답(\"Hello World\") 확인
+- .env 변수 로드 여부 확인
+
+---
+
+**Created:** 2025-07-24T21:26:13.469Z
+**Updated:** 2025-07-24T22:04:35.819Z

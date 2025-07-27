@@ -72,8 +72,7 @@ export async function POST(request: NextRequest) {
     const content = safeJSONParse(jsonText, {
       fallback: null,
       requiredKeys: ['title', 'content', 'summary', 'tags'],
-      enableReviver: true,
-      maxDepth: 5
+      enableReviver: true
     });
 
     if (!content || !content.title || !content.content || !content.summary || !content.tags) {

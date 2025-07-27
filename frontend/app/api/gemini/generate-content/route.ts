@@ -46,15 +46,15 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-    const result = await Promise.race([
+    const result: any = await Promise.race([
       model.generateContent(prompt),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 90000)
       )
-    ]) as any;
+    ]);
 
-    const response = await result.response;
-    let text = response.text().trim();
+    const response = result.response;
+    const text = response.text().trim();
 
     // JSON 영역 추출
     const jsonMatch = text.match(/\{[\s\S]*\}/);

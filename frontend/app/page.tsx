@@ -137,7 +137,7 @@ export default function Home() {
             </h2>
             <p className="text-xl text-text leading-relaxed">
               AIMAX는 제품과 서비스를 판매하는 모든 사람들을 위한<br />
-              <strong>'팔리는 콘텐츠 + 자동화 운영'을 한 번에 설계할 수 있는 SaaS</strong>입니다.
+              <strong>&apos;팔리는 콘텐츠 + 자동화 운영&apos;을 한 번에 설계할 수 있는 SaaS</strong>입니다.
             </p>
           </div>
           
@@ -320,7 +320,7 @@ export default function Home() {
           <div className="text-center">
             <div className="bg-text text-white p-6 rounded-xl inline-block">
               <p className="text-lg font-semibold">
-                지금 시작하면, 이 모든 흐름의 '초기 사용자'가 됩니다.
+                지금 시작하면, 이 모든 흐름의 &apos;초기 사용자&apos;가 됩니다.
               </p>
             </div>
           </div>

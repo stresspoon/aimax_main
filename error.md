@@ -1,362 +1,228 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" class="logo" width="120"/>
+# NextAuth TypeScript "Property 'id' does not exist" 오류 완벽 해결 가이드
 
-# TypeScript "maxDepth does not exist in type" 오류 해결 가이드
-
-**핵심 문제**: `SafeJSONParseOptions` 인터페이스에 `maxDepth` 속성이 정의되어 있지 않아 TypeScript 컴파일 오류가 발생하고 있습니다[^1][^2]. 이는 인터페이스에 정의되지 않은 속성을 객체 리터럴에서 사용할 때 발생하는 **"Object literal may only specify known properties"** 오류입니다.
+**핵심 문제**: `session.user.id = token.sub;` 코드에서 **TypeScript가 `session.user` 객체에 `id` 속성이 없다고 판단**하여 컴파일 오류가 발생하고 있습니다. 이는 NextAuth의 기본 타입 정의에서 `session.user`가 `id` 속성을 포함하지 않기 때문입니다.
 
 ## 문제 원인 분석
 
-에러 로그를 보면 `route.ts:76:7` 위치에서 다음과 같은 문제가 발생했습니다:
+NextAuth의 기본 `Session` 인터페이스에서 `user` 객체는 다음과 같이 정의되어 있습니다[1][2]:
 
 ```typescript
-// 문제가 되는 부분
-const content = safeJSONParse(jsonText, {
-  requiredKeys: ['title', 'content', 'summary', 'tags'],
-  enableReviver: true,
-  maxDepth: 5  // ❌ 'maxDepth'가 정의되지 않음
-});
-```
-
-
-## 즉시 해결 방법
-
-### 1. SafeJSONParseOptions 인터페이스에 maxDepth 추가
-
-`utils/safeJson.ts` 파일에서 인터페이스를 수정하세요:
-
-```typescript
-// utils/safeJson.ts
-interface SafeJSONParseOptions {
-  requiredKeys?: string[];
-  enableReviver?: boolean;
-  maxDepth?: number;  // ✅ 추가
-  fallback?: any;
-  logErrors?: boolean;
-}
-
-export function safeJSONParse(
-  jsonString: string, 
-  options: SafeJSONParseOptions = {}
-) {
-  const {
-    requiredKeys = [],
-    enableReviver = false,
-    maxDepth = 100,     // ✅ 기본값 설정
-    fallback = null,
-    logErrors = true
-  } = options;
-
-  // 기존 로직에 maxDepth 검증 추가
-  try {
-    const parsed = JSON.parse(jsonString);
-    
-    // maxDepth 검증
-    if (getObjectDepth(parsed) > maxDepth) {
-      throw new Error(`최대 깊이 초과: ${maxDepth}`);
-    }
-    
-    return parsed;
-  } catch (error) {
-    if (logErrors) {
-      console.error('JSON 파싱 실패:', error.message);
-    }
-    return fallback;
+interface DefaultSession {
+  user?: {
+    name?: string | null
+    email?: string | null  
+    image?: string | null
   }
-}
-
-// 객체 깊이 측정 유틸리티 함수
-function getObjectDepth(obj: any, depth = 0): number {
-  if (depth > 100) return depth; // 무한 재귀 방지
-  
-  if (obj === null || typeof obj !== 'object') {
-    return depth;
-  }
-  
-  return Math.max(depth, ...Object.values(obj).map(v => 
-    getObjectDepth(v, depth + 1)
-  ));
 }
 ```
 
+`id` 속성이 포함되어 있지 않아 TypeScript 컴파일러가 오류를 발생시킵니다[3][4].
 
-### 2. 임시 해결책: maxDepth 제거
+## 즉시 1. Module Augmentation을 통한 타입 확장
 
-당장 배포가 급하다면 `route.ts`에서 `maxDepth` 속성을 제거하세요:
-
-```typescript
-// 임시 해결책
-const content = safeJSONParse(jsonText, {
-  requiredKeys: ['title', 'content', 'summary', 'tags'],
-  enableReviver: true
-  // maxDepth: 5  // ❌ 제거
-});
-```
-
-
-### 3. 인덱스 시그니처를 사용하여 유연성 확보
-
-더 유연한 옵션 인터페이스를 만들려면 인덱스 시그니처를 추가하세요[^2]:
+**가장 권장되는 방법**입니다. 프로젝트 루트에 `next-auth.d.ts` 파일을 생성하세요[5][6]:
 
 ```typescript
-interface SafeJSONParseOptions {
-  requiredKeys?: string[];
-  enableReviver?: boolean;
-  maxDepth?: number;
-  fallback?: any;
-  logErrors?: boolean;
-  [key: string]: any; // ✅ 추가적인 속성 허용
+// next-auth.d.ts (프로젝트 루트)
+import NextAuth, { DefaultSession } from "next-auth"
+
+declare module "next-auth" {
+  /**
+   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
+   */
+  interface Session {
+    user: {
+      /** The user's unique identifier. */
+      id: string
+    } & DefaultSession["user"]
+  }
 }
 ```
 
+### 2. tsconfig.json 설정 확인
 
-## 근본적 해결책
+`tsconfig.json`에서 타입 정의 파일이 포함되도록 설정하세요[6][7]:
 
-### TypeScript 타입 안전성을 보장하는 완전한 구현
-
-```typescript
-// utils/safeJson.ts
-export interface SafeJSONParseOptions {
-  /** 필수로 존재해야 하는 키들 */
-  requiredKeys?: string[];
-  /** 안전한 리바이버 함수 사용 여부 */
-  enableReviver?: boolean;
-  /** 최대 객체 중첩 깊이 */
-  maxDepth?: number;
-  /** 파싱 실패 시 반환할 기본값 */
-  fallback?: any;
-  /** 오류 로깅 여부 */
-  logErrors?: boolean;
-  /** 타임아웃 (밀리초) */
-  timeout?: number;
-  /** 커스텀 검증 함수 */
-  validator?: (obj: any) => boolean;
-}
-
-export class JSONParseError extends Error {
-  constructor(message: string, public originalError?: Error) {
-    super(message);
-    this.name = 'JSONParseError';
-  }
-}
-
-export function safeJSONParse<T = any>(
-  jsonString: string,
-  options: SafeJSONParseOptions = {}
-): T | null {
-  const {
-    requiredKeys = [],
-    enableReviver = false,
-    maxDepth = 100,
-    fallback = null,
-    logErrors = true,
-    timeout = 5000,
-    validator
-  } = options;
-
-  // 입력 검증
-  if (typeof jsonString !== 'string' || !jsonString.trim()) {
-    if (logErrors) console.warn('JSON 파싱: 빈 문자열 또는 잘못된 타입');
-    return fallback;
-  }
-
-  try {
-    // 타임아웃 처리 (대용량 JSON 대비)
-    const parsePromise = new Promise<T>((resolve, reject) => {
-      try {
-        const parsed = JSON.parse(jsonString, enableReviver ? createSafeReviver() : undefined);
-        resolve(parsed);
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('JSON 파싱 타임아웃')), timeout);
-    });
-
-    const result = Promise.race([parsePromise, timeoutPromise]);
-    
-    // 동기 처리를 위한 즉시 실행
-    let parsed: T;
-    try {
-      parsed = JSON.parse(jsonString, enableReviver ? createSafeReviver() : undefined);
-    } catch (error) {
-      throw new JSONParseError('JSON 구문 오류', error as Error);
-    }
-
-    // 깊이 검증
-    if (maxDepth > 0 && getObjectDepth(parsed) > maxDepth) {
-      throw new JSONParseError(`최대 깊이 초과: ${maxDepth}`);
-    }
-
-    // 필수 키 검증
-    if (requiredKeys.length > 0 && typeof parsed === 'object' && parsed !== null) {
-      const missingKeys = requiredKeys.filter(key => !(key in parsed));
-      if (missingKeys.length > 0) {
-        throw new JSONParseError(`필수 키 누락: ${missingKeys.join(', ')}`);
-      }
-    }
-
-    // 커스텀 검증
-    if (validator && !validator(parsed)) {
-      throw new JSONParseError('커스텀 검증 실패');
-    }
-
-    return parsed;
-
-  } catch (error) {
-    if (logErrors) {
-      console.error('JSON 파싱 실패:', {
-        error: error instanceof Error ? error.message : '알 수 없는 오류',
-        input: jsonString.substring(0, 100) + '...',
-        timestamp: new Date().toISOString()
-      });
-    }
-    return fallback;
-  }
-}
-
-function createSafeReviver() {
-  const dangerousKeys = new Set(['__proto__', 'constructor', 'prototype']);
-  
-  return (key: string, value: any) => {
-    if (dangerousKeys.has(key)) return undefined;
-    return value;
-  };
-}
-
-function getObjectDepth(obj: any, depth = 0): number {
-  if (depth > 100) return depth; // 무한 재귀 방지
-  
-  if (obj === null || typeof obj !== 'object') {
-    return depth;
-  }
-  
-  return Math.max(depth, ...Object.values(obj).map(v => 
-    getObjectDepth(v, depth + 1)
-  ));
-}
-```
-
-
-### 사용 예시
-
-```typescript
-// app/api/gemini/generate-content/route.ts
-import { safeJSONParse, SafeJSONParseOptions } from '../../../utils/safeJson';
-
-const parseOptions: SafeJSONParseOptions = {
-  requiredKeys: ['title', 'content', 'summary', 'tags'],
-  enableReviver: true,
-  maxDepth: 5,
-  fallback: {
-    title: '',
-    content: '',
-    summary: '',
-    tags: []
+```json
+{
+  "compilerOptions": {
+    // ... 기타 옵션들
   },
-  validator: (obj) => {
-    return obj.title && obj.content && obj.summary && Array.isArray(obj.tags);
-  }
-};
-
-const content = safeJSONParse(jsonText, parseOptions);
+  "include": [
+    "next-env.d.ts", 
+    "types/**/*.ts",
+    "**/*.ts", 
+    "**/*.tsx",
+    "next-auth.d.ts"  // 명시적으로 포함
+  ]
+}
 ```
 
+### 3. lib/auth.ts 파일 수정
 
-## 예방책 및 모범 사례
-
-### 1. 타입 정의 파일 중앙 관리
+session 콜백에서 올바른 방식으로 `id`를 할당하세요[8][9]:
 
 ```typescript
-// types/json.ts
-export interface JSONParseOptions {
-  maxDepth?: number;
-  timeout?: number;
-  reviver?: (key: string, value: any) => any;
+// lib/auth.ts
+import NextAuth from "next-auth"
+import GoogleProvider from "next-auth/providers/google"
+
+export const authOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    })
+  ],
+  callbacks: {
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;  // ✅ 이제 타입 오류 없음
+      }
+      return session;
+    },
+  },
 }
 
-export interface ValidationOptions {
-  requiredKeys?: string[];
-  schema?: object;
-  strict?: boolean;
-}
-
-export type SafeJSONParseOptions = JSONParseOptions & ValidationOptions & {
-  fallback?: any;
-  logErrors?: boolean;
-};
+export default NextAuth(authOptions)
 ```
 
+## 고급 해결책
 
-### 2. ESLint 규칙 추가
+### 완전한 타입 안전성을 위한 확장된 설정
 
-```json
-// .eslintrc.json
-{
-  "rules": {
-    "@typescript-eslint/no-unsafe-assignment": "error",
-    "@typescript-eslint/no-unsafe-member-access": "error",
-    "prefer-const": "error"
+더 포괄적인 타입 정의를 원한다면 다음과 같이 설정하세요[10]:
+
+```typescript
+// types/next-auth.d.ts
+import { DefaultSession, DefaultUser } from "next-auth"
+import { DefaultJWT } from "next-auth/jwt"
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      // 추가 속성들을 여기에 정의
+    } & DefaultSession["user"]
+  }
+
+  interface User extends DefaultUser {
+    // User 객체에 추가 속성이 필요한 경우
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT extends DefaultJWT {
+    id: string
+    // JWT 토큰에 추가 속성이 필요한 경우
   }
 }
 ```
 
+### JWT 콜백과 함께 사용하는 완전한 예시
 
-### 3. 빌드 전 타입 검사
-
-```json
-// package.json
-{
-  "scripts": {
-    "type-check": "tsc --noEmit",
-    "prebuild": "npm run type-check",
-    "build": "next build"
-  }
+```typescript
+// lib/auth.ts
+export const authOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    })
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      // 첫 번째 로그인 시 user 정보를 token에 저장
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // token의 정보를 session에 전달
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
+  },
 }
 ```
 
-이렇게 수정하면 **Vercel 배포 시 발생하는 TypeScript 타입 오류가 완전히 해결**되고, 동시에 JSON 파싱의 안전성과 타입 안전성도 확보할 수 있습니다[^3][^4].
+## 문제 해결 체크리스트
 
-<div style="text-align: center">⁂</div>
+- [ ] **`next-auth.d.ts` 파일이 프로젝트 루트에 생성**되어 있는지 확인
+- [ ] **tsconfig.json에서 해당 파일이 include**되어 있는지 확인  
+- [ ] **타입 정의에서 `DefaultSession["user"]`와 합집합**으로 정의했는지 확인
+- [ ] **개발 서버를 재시작**했는지 확인 (타입 변경 후 필수)
+- [ ] **IDE에서 TypeScript 서버를 재시작**했는지 확인
 
-[^1]: https://dev.to/cristiansifuentes/understanding-the-object-literal-may-only-specify-known-properties-error-in-react-typescript-25f0
+## 실제 사용 예시
 
-[^2]: https://bobbyhadz.com/blog/typescript-object-literal-may-only-specify-known-properties
+타입 확장 후 클라이언트에서 안전하게 사용할 수 있습니다:
 
-[^3]: https://dev.to/maafaishal/safely-use-jsonparse-in-typescript-12e7
+```typescript
+// components/UserProfile.tsx
+import { useSession } from "next-auth/react"
 
-[^4]: https://www.codeproject.com/Articles/5378161/Mastering-Type-Safe-JSON-Serialization-in-TypeScri
+export default function UserProfile() {
+  const { data: session } = useSession()
+  
+  if (session?.user) {
+    // ✅ TypeScript 오류 없이 id 접근 가능
+    console.log("User ID:", session.user.id)
+    console.log("User Name:", session.user.name)
+    console.log("User Email:", session.user.email)
+  }
+  
+  return Profile Component
+}
+```
 
-[^5]: https://stackoverflow.com/questions/68153326/do-typescript-interfaces-not-limit-the-amount-of-properties
+## 주의사항
 
-[^6]: https://despiteallthat.tistory.com/198
+### 파일 위치가 중요합니다
+- `next-auth.d.ts` 파일은 **프로젝트 루트**에 위치해야 합니다[11][12]
+- `src/` 폴더를 사용하는 경우 `src/types/next-auth.d.ts`에 배치할 수 있습니다
+- 경우에 따라 `auth.ts` 파일과 **같은 위치**에 타입 정의를 넣는 것이 더 효과적일 수 있습니다[11]
 
-[^7]: https://stackoverflow.com/questions/69673056/typescript-type-safety-fails-with-json-parse/69674456
+### 배포 환경에서의 고려사항
+- **Vercel 배포 시에도 동일한 타입 정의가 적용**되는지 확인하세요
+- ESLint 설정이 너무 엄격한 경우 타입 정의를 인식하지 못할 수 있습니다
 
-[^8]: https://www.reddit.com/r/typescript/comments/11p00uv/typescript_maximum_depth_for_inferred_types/
+이 해결책을 적용하면 **Vercel 배포 시 발생하는 TypeScript 오류가 완전히 해결**되고, NextAuth의 session 객체에서 안전하게 사용자 ID를 사용할 수 있습니다[3][4][1][2][6][8][9][10][7][12].
 
-[^9]: https://www.reddit.com/r/typescript/comments/1eqmiiv/why_are_excess_properties_now_allowed_in_object/
-
-[^10]: https://learn.microsoft.com/en-us/javascript/api/@microsoft/signalr-protocol-msgpack/messagepackoptions?view=signalr-js-latest
-
-[^11]: https://hackernoon.com/mastering-type-safe-json-serialization-in-typescript
-
-[^12]: https://www.totaltypescript.com/concepts/object-is-of-type-unknown
-
-[^13]: https://stackoverflow.com/questions/75698734/typescript-maximum-depth-inferred-types
-
-[^14]: https://dev.to/nodge/mastering-type-safe-json-serialization-in-typescript-1g96
-
-[^15]: https://www.cnblogs.com/Answer1215/p/16517779.html
-
-[^16]: https://stackoverflow.com/questions/71223634/typescript-interface-causing-type-instantiation-is-excessively-deep-and-possibl
-
-[^17]: https://dev.to/codeprototype/safely-parsing-json-to-a-typescript-interface-3lkj
-
-[^18]: https://stackoverflow.com/questions/31816061/why-am-i-getting-an-error-object-literal-may-only-specify-known-properties
-
-[^19]: https://learn.microsoft.com/ko-kr/javascript/api/@microsoft/signalr-protocol-msgpack/messagepackoptions?view=signalr-js-latest
-
-[^20]: https://www.typescriptlang.org/ko/docs/handbook/release-notes/typescript-4-9.html
-
+[1] https://stackoverflow.com/questions/77153555/typescript-issues-in-session-callback
+[2] https://github.com/nextauthjs/next-auth/issues/7132
+[3] https://github.com/nextauthjs/next-auth/issues/7966
+[4] https://stackoverflow.com/questions/71665419/how-to-make-additional-user-properties-available-to-the-user-object-within-the-s
+[5] https://dev.to/josemukorivo/unlock-next-level-authentication-in-nextjs-with-next-auth-and-typescript-module-augmentation-1689?comments_sort=oldest
+[6] https://stackoverflow.com/questions/69602694/how-to-update-the-type-of-session-in-session-callback-in-next-auth-when-using-ty/69606162
+[7] https://stackoverflow.com/questions/76321021/nextauth-shows-me-errors-when-embedding-with-typescript
+[8] https://stackoverflow.com/questions/75118956/how-do-i-receive-the-user-id-from-a-session-using-next-auth
+[9] https://stackoverflow.com/questions/70409219/get-user-id-from-session-in-next-auth-client/71721634
+[10] https://stackoverflow.com/questions/74425533/property-role-does-not-exist-on-type-user-adapteruser-in-nextauth
+[11] https://github.com/nextauthjs/next-auth/discussions/6915
+[12] https://josemukorivo.com/blog/unlock-next-level-authentication-in-nextjs-with-next-auth-and-typescript-module-augmentation-1689
+[13] https://stackoverflow.com/questions/77012540/session-callback-not-populating-user-id-from-jwt-token-using-nextauth-js
+[14] https://github.com/nextauthjs/next-auth/issues/9253
+[15] https://stackoverflow.com/questions/77012540/session-callback-not-populating-user-id-from-jwt-token-using-nextauth-js/77681105
+[16] https://www.inflearn.com/community/questions/1199290/nextauth-session-type-%EC%A7%88%EB%AC%B8%EB%93%9C%EB%A6%BD%EB%8B%88%EB%8B%A4
+[17] https://dev.to/shinjithdev/authentication-user-management-in-nextjs-app-router-typescript-2023-3nnp
+[18] https://www.reddit.com/r/nextjs/comments/19822hx/new_in_typescript_need_help/
+[19] https://stackoverflow.com/questions/77701481/nextauth-user-is-undefined-in-session-callback-with-custom-session
+[20] https://stackoverflow.com/questions/78324714/how-do-i-type-the-session-and-signin-callback-in-nextauth-route-ts-file
+[21] https://stackoverflow.com/questions/77767383/how-to-add-more-properties-to-session-from-nextauth
+[22] https://twentytwentyone.tistory.com/814
+[23] https://www.reddit.com/r/nextjs/comments/16oop7y/get_user_id_from_session_in_nextauth_client/
+[24] https://github.com/nextauthjs/next-auth/discussions/8456
+[25] https://velog.io/@jason_kim/next-auth-module-augmentationwith-typescript
+[26] https://github.com/nextauthjs/next-auth/issues/9571
+[27] https://next-auth.js.org/getting-started/typescript
+[28] https://stackoverflow.com/questions/73995421/session-callback-with-no-value-in-nextauth-js
+[29] https://github.com/nextauthjs/next-auth/discussions/9776
+[30] https://stackoverflow.com/questions/79099777/nextauth-refuses-to-allow-me-to-add-a-property-to-my-session-object-because-of-t
+[31] https://github.com/nextauthjs/next-auth/discussions/9120
+[32] https://github.com/nextauthjs/next-auth/discussions/7854
+[33] https://cloud.tencent.com/developer/ask/sof/106922128
+[34] https://velog.io/@xorb269/next-auth-Custom-User-Type-%EB%A7%8C%EB%93%A4%EA%B8%B0

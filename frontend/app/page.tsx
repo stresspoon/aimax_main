@@ -22,9 +22,6 @@ export default function Home() {
               <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">BETA</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <Link href="/dashboard" className="text-text hover:text-text/70 transition-colors">
-                대시보드
-              </Link>
               <div className="bg-white rounded-lg p-1 border border-gray-200">
                 <LoginButton />
               </div>

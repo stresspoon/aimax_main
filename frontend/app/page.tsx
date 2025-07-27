@@ -47,12 +47,8 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold text-text mb-6 tracking-tight leading-tight">
-            AIMAX는 팔리는 루틴을<br />
-            <span className="bg-gradient-to-r from-text to-text/70 bg-clip-text text-transparent">만듭니다</span>
+            AIMAX는 팔리는 루틴을 만듭니다
           </h1>
-          <p className="text-2xl md:text-3xl text-text mb-4 font-semibold">
-            글 하나로 시작되는 자동화
-          </p>
           <p className="text-lg md:text-xl text-text/70 mb-12 leading-relaxed max-w-3xl mx-auto">
             지금 블로그 글쓰기부터, 곧 체험단까지.<br />
             비즈니스를 위한 자동화 SaaS, AIMAX

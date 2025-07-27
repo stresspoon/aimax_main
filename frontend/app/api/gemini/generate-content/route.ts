@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getContentGuideline } from '@/utils/contentGuidelines';
-import { safeJSONParse, StreamingJSONAccumulator } from '@/utils/safeJson';
+import { safeJSONParse } from '@/utils/safeJson';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -67,15 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let jsonText = jsonMatch[0];
-    const accumulator = new StreamingJSONAccumulator();
-    
-    // 스트리밍 JSON 누적으로 파싱 시도
-    accumulator.addChunk(jsonText);
-    
-    if (accumulator.isComplete()) {
-      jsonText = accumulator.getFinalJSON();
-    }
+    const jsonText = jsonMatch[0];
 
     const content = safeJSONParse(jsonText, {
       fallback: null,

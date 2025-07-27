@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contentGuideline = getContentGuideline(contentType, topic);
+    const primaryKeyword = Array.isArray(keywords) ? keywords[0] : keywords;
+    const subKeywords = Array.isArray(keywords) ? keywords.slice(1) : [];
+    const contentGuideline = getContentGuideline(contentType, title, primaryKeyword, subKeywords);
     
     const prompt = `
       ${contentGuideline}

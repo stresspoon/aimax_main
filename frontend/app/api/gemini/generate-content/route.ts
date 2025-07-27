@@ -3,16 +3,18 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getContentGuideline } from '@/utils/contentGuidelines';
 import { safeJSONParse } from '@/utils/safeJson';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY is not configured');
-}
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
 export async function POST(request: NextRequest) {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json(
+      { error: 'GEMINI_API_KEY is not configured' },
+      { status: 500 }
+    );
+  }
+  
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
   try {
     const body = await request.json();
 

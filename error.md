@@ -1,228 +1,295 @@
-# NextAuth TypeScript "Property 'id' does not exist" 오류 완벽 해결 가이드
+# Vercel 배포 "GEMINI_API_KEY is not configured" 오류 완벽 해결 가이드
 
-**핵심 문제**: `session.user.id = token.sub;` 코드에서 **TypeScript가 `session.user` 객체에 `id` 속성이 없다고 판단**하여 컴파일 오류가 발생하고 있습니다. 이는 NextAuth의 기본 타입 정의에서 `session.user`가 `id` 속성을 포함하지 않기 때문입니다.
+**핵심 문제**: Vercel 빌드 과정에서 `GEMINI_API_KEY is not configured` 오류가 발생하는 것은 **환경 변수가 Vercel 프로젝트에 설정되지 않았거나**, **빌드 시점에 API 키에 접근하려는 코드**가 있기 때문입니다.
 
 ## 문제 원인 분석
 
-NextAuth의 기본 `Session` 인터페이스에서 `user` 객체는 다음과 같이 정의되어 있습니다[1][2]:
+에러 로그를 보면 "Collecting page data" 단계에서 오류가 발생했습니다[1]. 이는 Next.js가 빌드 시점에 정적 페이지 생성을 위해 API 경로를 실행하려고 시도하면서 환경 변수에 접근했기 때문입니다[2][1].
+
+```
+Error: GEMINI_API_KEY is not configured
+    at (.next/server/app/api/gemini/generate-content/route.js:112:702)
+```
+
+##  1단계: Vercel 프로젝트에 환경 변수 설정
+
+**Vercel 대시보드에서 환경 변수 추가**:
+
+1. **Vercel 대시보드**에 로그인
+2. 해당 **프로젝트** 선택
+3. **Settings** 탭 클릭
+4. 좌측 메뉴에서 **Environment Variables** 클릭[3]
+5. 새 환경 변수 추가:
+   - **Name**: `GEMINI_API_KEY`
+   - **Value**: 실제 Gemini API 키 입력
+   - **Environments**: Production, Preview, Development 모두 선택[4]
+6. **Save** 클릭
+
+### 2단계: 민감한 환경 변수로 설정
+
+보안을 위해 **Sensitive** 옵션을 활성화하세요[5]:
+
+1. 환경 변수 추가 시 **Sensitive** 스위치를 **Enabled**로 설정
+2. 이렇게 하면 변수 값이 암호화되어 저장되고 읽기 불가능한 형태로 표시됩니다
+
+### 3단계: API 키 검증 코드 수정
+
+`app/api/gemini/generate-content/route.ts` 파일에서 환경 변수 체크 로직을 개선하세요:
 
 ```typescript
-interface DefaultSession {
-  user?: {
-    name?: string | null
-    email?: string | null  
-    image?: string | null
+// 기존 문제 코드
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('GEMINI_API_KEY is not configured'); // ❌ 빌드 시 실행됨
+}
+
+// 개선된 코드
+export async function POST(request: Request) {
+  // API 호출 시점에 체크
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Gemini API 호출 로직
+  try {
+    // ... 실제 API 호출 코드
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: 'API call failed' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 ```
 
-`id` 속성이 포함되어 있지 않아 TypeScript 컴파일러가 오류를 발생시킵니다[3][4].
+## 근본적 해결책
 
-## 즉시 1. Module Augmentation을 통한 타입 확장
+### 1. 빌드 시점 vs 런타임 환경 변수 구분
 
-**가장 권장되는 방법**입니다. 프로젝트 루트에 `next-auth.d.ts` 파일을 생성하세요[5][6]:
+**빌드 시점에 실행되는 코드 수정**:
 
 ```typescript
-// next-auth.d.ts (프로젝트 루트)
-import NextAuth, { DefaultSession } from "next-auth"
+// ❌ 모듈 최상위에서 환경 변수 체크 - 빌드 시 실행됨
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY is not configured');
+}
 
-declare module "next-auth" {
-  /**
-   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-   */
-  interface Session {
-    user: {
-      /** The user's unique identifier. */
-      id: string
-    } & DefaultSession["user"]
+// ✅ 함수 내부에서 체크 - 런타임에만 실행됨
+export async function POST(request: Request) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      status: 500
+    });
+  }
+  // ... 나머지 로직
+}
+```
+
+### 2. 안전한 환경 변수 검증 유틸리티
+
+```typescript
+// utils/env.ts
+export function validateEnvVariables() {
+  const requiredVars = ['GEMINI_API_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    console.error('Missing environment variables:', missing);
+    return { isValid: false, missing };
+  }
+  
+  return { isValid: true, missing: [] };
+}
+
+// API 경로에서 사용
+export async function POST(request: Request) {
+  const envCheck = validateEnvVariables();
+  if (!envCheck.isValid) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Server configuration error',
+        details: process.env.NODE_ENV === 'development' ? envCheck.missing : undefined
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  
+  // ... 실제 로직
+}
+```
+
+### 3. Gemini API 클라이언트 초기화 최적화
+
+```typescript
+// lib/gemini.ts
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+let geminiClient: GoogleGenerativeAI | null = null;
+
+export function getGeminiClient(): GoogleGenerativeAI {
+  if (!geminiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY environment variable is required');
+    }
+    geminiClient = new GoogleGenerativeAI(apiKey);
+  }
+  return geminiClient;
+}
+
+// API 경로에서 사용
+export async function POST(request: Request) {
+  try {
+    const client = getGeminiClient();
+    const model = client.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    // ... API 호출
+  } catch (error) {
+    if (error.message.includes('GEMINI_API_KEY')) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500 }
+      );
+    }
+    throw error;
   }
 }
 ```
 
-### 2. tsconfig.json 설정 확인
+## 배포 후 확인사항
 
-`tsconfig.json`에서 타입 정의 파일이 포함되도록 설정하세요[6][7]:
+### 1. 환경 변수 설정 확인
 
-```json
-{
-  "compilerOptions": {
-    // ... 기타 옵션들
-  },
-  "include": [
-    "next-env.d.ts", 
-    "types/**/*.ts",
-    "**/*.ts", 
-    "**/*.tsx",
-    "next-auth.d.ts"  // 명시적으로 포함
-  ]
-}
+**Vercel CLI를 통한 확인**:
+```bash
+# 프로젝트 환경 변수 확인
+vercel env ls
+
+# 로컬에 환경 변수 다운로드
+vercel env pull .env.local
 ```
 
-### 3. lib/auth.ts 파일 수정
+### 2. API 경로 테스트
 
-session 콜백에서 올바른 방식으로 `id`를 할당하세요[8][9]:
-
-```typescript
-// lib/auth.ts
-import NextAuth from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-
-export const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    })
-  ],
-  callbacks: {
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;  // ✅ 이제 타입 오류 없음
-      }
-      return session;
-    },
-  },
-}
-
-export default NextAuth(authOptions)
+배포 후 다음 URL로 API 경로가 정상 작동하는지 확인:
+```
+https://your-project.vercel.app/api/gemini/generate-content
 ```
 
-## 고급 해결책
+### 3. 로그 모니터링
 
-### 완전한 타입 안전성을 위한 확장된 설정
+**Vercel 함수 로그 확인**:
+1. Vercel 대시보드 → 프로젝트 → **Functions** 탭
+2. 해당 API 경로 클릭하여 실행 로그 확인
 
-더 포괄적인 타입 정의를 원한다면 다음과 같이 설정하세요[10]:
+## 예방 및 모범 사례
+
+### 1. 환경 변수 타입 안전성
 
 ```typescript
-// types/next-auth.d.ts
-import { DefaultSession, DefaultUser } from "next-auth"
-import { DefaultJWT } from "next-auth/jwt"
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string
-      // 추가 속성들을 여기에 정의
-    } & DefaultSession["user"]
-  }
-
-  interface User extends DefaultUser {
-    // User 객체에 추가 속성이 필요한 경우
+// types/env.d.ts
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      GEMINI_API_KEY: string;
+      GOOGLE_CLIENT_ID: string;
+      GOOGLE_CLIENT_SECRET: string;
+      NEXTAUTH_SECRET: string;
+      NEXTAUTH_URL: string;
+    }
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
-    id: string
-    // JWT 토큰에 추가 속성이 필요한 경우
-  }
-}
+export {};
 ```
 
-### JWT 콜백과 함께 사용하는 완전한 예시
+### 2. 개발 환경 설정
 
-```typescript
-// lib/auth.ts
-export const authOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    })
-  ],
-  callbacks: {
-    async jwt({ token, user }) {
-      // 첫 번째 로그인 시 user 정보를 token에 저장
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // token의 정보를 session에 전달
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    },
-  },
-}
+**.env.example 파일 생성**:
+```env
+# API Keys
+GEMINI_API_KEY=your_gemini_api_key_here
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# NextAuth
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+### 3. CI/CD 파이프라인 개선
+
+**GitHub Actions에서 환경 변수 설정**:
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to Vercel
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy Project Artifacts
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 ```
 
 ## 문제 해결 체크리스트
 
-- [ ] **`next-auth.d.ts` 파일이 프로젝트 루트에 생성**되어 있는지 확인
-- [ ] **tsconfig.json에서 해당 파일이 include**되어 있는지 확인  
-- [ ] **타입 정의에서 `DefaultSession["user"]`와 합집합**으로 정의했는지 확인
-- [ ] **개발 서버를 재시작**했는지 확인 (타입 변경 후 필수)
-- [ ] **IDE에서 TypeScript 서버를 재시작**했는지 확인
+- [ ] **Vercel 프로젝트에 GEMINI_API_KEY 환경 변수가 설정**되어 있는지 확인
+- [ ] **Production, Preview, Development 환경** 모두에 변수가 적용되었는지 확인
+- [ ] **Sensitive 옵션**이 활성화되어 보안이 강화되었는지 확인
+- [ ] **API 경로 코드에서 모듈 최상위가 아닌 함수 내부**에서 환경 변수를 체크하는지 확인
+- [ ] **환경 변수 설정 후 재배포**를 진행했는지 확인
+- [ ] **로컬 .env 파일과 Vercel 설정**이 일치하는지 확인
 
-## 실제 사용 예시
+Gemini API 키는 **Google AI Studio**에서 발급받을 수 있으며[6], Vercel에 설정한 후에는 반드시 **재배포**해야 변경사항이 적용됩니다[7]. 이 가이드를 따라 설정하면 "GEMINI_API_KEY is not configured" 오류가 완전히 해결되고, 안전하고 확장 가능한 AI 기반 SaaS 애플리케이션을 배포할 수 있습니다.
 
-타입 확장 후 클라이언트에서 안전하게 사용할 수 있습니다:
-
-```typescript
-// components/UserProfile.tsx
-import { useSession } from "next-auth/react"
-
-export default function UserProfile() {
-  const { data: session } = useSession()
-  
-  if (session?.user) {
-    // ✅ TypeScript 오류 없이 id 접근 가능
-    console.log("User ID:", session.user.id)
-    console.log("User Name:", session.user.name)
-    console.log("User Email:", session.user.email)
-  }
-  
-  return Profile Component
-}
-```
-
-## 주의사항
-
-### 파일 위치가 중요합니다
-- `next-auth.d.ts` 파일은 **프로젝트 루트**에 위치해야 합니다[11][12]
-- `src/` 폴더를 사용하는 경우 `src/types/next-auth.d.ts`에 배치할 수 있습니다
-- 경우에 따라 `auth.ts` 파일과 **같은 위치**에 타입 정의를 넣는 것이 더 효과적일 수 있습니다[11]
-
-### 배포 환경에서의 고려사항
-- **Vercel 배포 시에도 동일한 타입 정의가 적용**되는지 확인하세요
-- ESLint 설정이 너무 엄격한 경우 타입 정의를 인식하지 못할 수 있습니다
-
-이 해결책을 적용하면 **Vercel 배포 시 발생하는 TypeScript 오류가 완전히 해결**되고, NextAuth의 session 객체에서 안전하게 사용자 ID를 사용할 수 있습니다[3][4][1][2][6][8][9][10][7][12].
-
-[1] https://stackoverflow.com/questions/77153555/typescript-issues-in-session-callback
-[2] https://github.com/nextauthjs/next-auth/issues/7132
-[3] https://github.com/nextauthjs/next-auth/issues/7966
-[4] https://stackoverflow.com/questions/71665419/how-to-make-additional-user-properties-available-to-the-user-object-within-the-s
-[5] https://dev.to/josemukorivo/unlock-next-level-authentication-in-nextjs-with-next-auth-and-typescript-module-augmentation-1689?comments_sort=oldest
-[6] https://stackoverflow.com/questions/69602694/how-to-update-the-type-of-session-in-session-callback-in-next-auth-when-using-ty/69606162
-[7] https://stackoverflow.com/questions/76321021/nextauth-shows-me-errors-when-embedding-with-typescript
-[8] https://stackoverflow.com/questions/75118956/how-do-i-receive-the-user-id-from-a-session-using-next-auth
-[9] https://stackoverflow.com/questions/70409219/get-user-id-from-session-in-next-auth-client/71721634
-[10] https://stackoverflow.com/questions/74425533/property-role-does-not-exist-on-type-user-adapteruser-in-nextauth
-[11] https://github.com/nextauthjs/next-auth/discussions/6915
-[12] https://josemukorivo.com/blog/unlock-next-level-authentication-in-nextjs-with-next-auth-and-typescript-module-augmentation-1689
-[13] https://stackoverflow.com/questions/77012540/session-callback-not-populating-user-id-from-jwt-token-using-nextauth-js
-[14] https://github.com/nextauthjs/next-auth/issues/9253
-[15] https://stackoverflow.com/questions/77012540/session-callback-not-populating-user-id-from-jwt-token-using-nextauth-js/77681105
-[16] https://www.inflearn.com/community/questions/1199290/nextauth-session-type-%EC%A7%88%EB%AC%B8%EB%93%9C%EB%A6%BD%EB%8B%88%EB%8B%A4
-[17] https://dev.to/shinjithdev/authentication-user-management-in-nextjs-app-router-typescript-2023-3nnp
-[18] https://www.reddit.com/r/nextjs/comments/19822hx/new_in_typescript_need_help/
-[19] https://stackoverflow.com/questions/77701481/nextauth-user-is-undefined-in-session-callback-with-custom-session
-[20] https://stackoverflow.com/questions/78324714/how-do-i-type-the-session-and-signin-callback-in-nextauth-route-ts-file
-[21] https://stackoverflow.com/questions/77767383/how-to-add-more-properties-to-session-from-nextauth
-[22] https://twentytwentyone.tistory.com/814
-[23] https://www.reddit.com/r/nextjs/comments/16oop7y/get_user_id_from_session_in_nextauth_client/
-[24] https://github.com/nextauthjs/next-auth/discussions/8456
-[25] https://velog.io/@jason_kim/next-auth-module-augmentationwith-typescript
-[26] https://github.com/nextauthjs/next-auth/issues/9571
-[27] https://next-auth.js.org/getting-started/typescript
-[28] https://stackoverflow.com/questions/73995421/session-callback-with-no-value-in-nextauth-js
-[29] https://github.com/nextauthjs/next-auth/discussions/9776
-[30] https://stackoverflow.com/questions/79099777/nextauth-refuses-to-allow-me-to-add-a-property-to-my-session-object-because-of-t
-[31] https://github.com/nextauthjs/next-auth/discussions/9120
-[32] https://github.com/nextauthjs/next-auth/discussions/7854
-[33] https://cloud.tencent.com/developer/ask/sof/106922128
-[34] https://velog.io/@xorb269/next-auth-Custom-User-Type-%EB%A7%8C%EB%93%A4%EA%B8%B0
+[1] https://github.com/vercel/next.js/discussions/35534
+[2] https://github.com/vercel/next.js/discussions/50955
+[3] https://www.delasign.com/blog/how-to-add-edit-or-remove-environment-variables-in-vercel/
+[4] https://vercel.com/docs/environment-variables
+[5] https://vercel.com/docs/environment-variables/sensitive-environment-variables
+[6] https://ai.google.dev/gemini-api/docs/api-key
+[7] https://vercel.com/guides/how-to-add-vercel-environment-variables
+[8] https://vercel.com/docs/environment-variables/system-environment-variables
+[9] https://stackoverflow.com/questions/77900701/my-gemini-api-key-is-not-working-properly
+[10] https://humanwhocodes.com/blog/2019/09/securing-persistent-environment-variables-zeit-now/
+[11] https://ai.google.dev/gemini-api/docs/troubleshooting
+[12] https://www.cnblogs.com/xgqfrms/p/17121243.html
+[13] https://www.googlecloudcommunity.com/gc/AI-ML/Google-Gemini-in-node-js-next-js-project/td-p/722040
+[14] https://vercel.com/blog/environment-variables-ui
+[15] https://github.com/vercel/ai/issues/860
+[16] https://ai.google.dev/gemini-api/docs/structured-output
+[17] https://vercel.com/docs/deploy-button/environment-variables
+[18] https://firebase.google.com/codelabs/firebase-nextjs
+[19] https://discuss.ai.google.dev/t/how-do-i-set-api-key-environment-for-the-repo/33720
+[20] https://velog.io/@zifnffk321/next-js-%EB%B9%8C%EB%93%9C-%EC%97%90%EB%9F%AC
+[21] https://velog.io/@yena1025/vercel%EB%A1%9C-%EB%B0%B0%ED%8F%AC%ED%95%9C-%EC%95%B1%EC%97%90-.env%ED%99%98%EA%B2%BD-%EB%B3%80%EC%88%98-%EC%A0%81%EC%9A%A9%ED%95%98%EA%B8%B0
+[22] https://github.com/vercel/next.js/issues/44998
+[23] https://learn.microsoft.com/en-us/answers/questions/2235931/deploying-environment-variables-for-nextjs-and-nod
+[24] https://www.reddit.com/r/nextjs/comments/1dqunl5/cant_successfully_create_a_production_build/
+[25] https://qiita.com/bisketoriba/items/c5c6873e1e2cedbaae95
+[26] https://hackmd.io/@sam30606/HyJo0dloC
+[27] https://gist.github.com/patrickloeber/9cd1b134adf6516424224b4b51344077
+[28] https://stackoverflow.com/questions/76397896/unable-to-access-environment-variables-in-next-js-api-routes
+[29] https://v0.dev/chat/gemini-study-website-l766e3ZTTQv
+[30] https://community.fly.io/t/nextjs-build-vs-runtime-environment-variables/13760
+[31] https://stackoverflow.com/questions/70850634/nextjs-collecting-page-data-fails-with-status-code-500/70877832
+[32] https://stackoverflow.com/questions/66845336/nextjs-environment-variable-undefined-in-api-route
+[33] https://stackoverflow.com/questions/79415284/next-js-building-stuck-in-collecting-page-data
+[34] https://vercel.com/docs/deployments/troubleshoot-a-build
+[35] https://nextjs.org/docs/pages/guides/environment-variables
+[36] https://stackoverflow.com/questions/77551616/why-does-next-js-need-runtime-environment-variables-at-build
+[37] https://vercel.com/docs/errors/error-list

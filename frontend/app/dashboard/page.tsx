@@ -6,11 +6,18 @@ import Link from 'next/link';
 import { LoginButton } from '../../components/auth/LoginButton';
 import { AuthGuard } from '../../components/auth/AuthGuard';
 import SheetConnector from '../../components/sheets/SheetConnector';
+import ApplicantManager from '../../components/applicants/ApplicantManager';
 
 export default function Dashboard() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
+  const [connectedSheet, setConnectedSheet] = useState<{
+    sheetId: string;
+    title: string;
+    url: string;
+    sheets: Array<{ id: number; title: string }>;
+  } | null>(null);
 
   const features = [
     {
@@ -152,9 +159,17 @@ export default function Dashboard() {
           <SheetConnector 
             onSheetConnected={(sheet) => {
               console.log('시트 연동 완료:', sheet);
+              setConnectedSheet(sheet);
             }}
           />
         </div>
+
+        {/* 신청자 관리 섹션 */}
+        {connectedSheet && (
+          <div className="mt-16">
+            <ApplicantManager connectedSheet={connectedSheet} />
+          </div>
+        )}
 
         <div className="mt-16 text-center">
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-md mx-auto">

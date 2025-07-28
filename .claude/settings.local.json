@@ -26,7 +26,10 @@
       "Bash(npx:*)",
       "WebFetch(domain:aimax-main-three.vercel.app)",
       "Bash(gh repo view:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "WebFetch(domain:aimax-main-1jlfg4thm-minsoos-projects-463887d4.vercel.app)",
+      "WebFetch(domain:aimax-main-6mfuho2ur-minsoos-projects-463887d4.vercel.app)",
+      "Bash(claude mcp add:*)"
     ],
     "deny": []
   }

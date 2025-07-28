@@ -191,32 +191,67 @@ export default function AIWriting() {
       setContentOutline(tags);
       
       // SEO 분석 수행
-      const wordCount = content.split(/\s+/).length;
+      // 한글의 경우 어절 단위로 계산
+      const words = content.split(/\s+/).filter((word: string) => word.length > 0);
+      const wordCount = words.length;
+      const charCount = content.length;
       const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0).length;
-      const avgWordsPerSentence = wordCount / Math.max(sentences, 1);
+      const avgWordsPerSentence = sentences > 0 ? wordCount / sentences : 10;
+      
+      console.log('SEO 분석 시작:', {
+        contentLength: content.length,
+        charCount,
+        wordCount,
+        sentences,
+        avgWordsPerSentence,
+        primaryKeyword: step3Data.primaryKeyword
+      });
       
       // 키워드 밀도 계산
       const mainKeyword = step3Data.primaryKeyword.toLowerCase();
       const contentLower = content.toLowerCase();
-      const keywordMatches = (contentLower.match(new RegExp(mainKeyword, 'g')) || []).length;
+      // 정규표현식 특수문자 이스케이프
+      const escapedKeyword = mainKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const keywordMatches = (contentLower.match(new RegExp(escapedKeyword, 'g')) || []).length;
       const keywordDensity = Math.round((keywordMatches / wordCount) * 100 * 100) / 100;
       
       // 가독성 점수 (간단한 Flesch Reading Ease 근사치)
       const readabilityScore = Math.max(0, Math.min(100, 100 - (avgWordsPerSentence * 1.5)));
       
-      // SEO 점수 계산
+      // SEO 점수 계산 (한글 기준)
+      const contentLengthScore = Math.min(30, (charCount / 2000) * 30); // 2000자 기준
+      const keywordScore = keywordDensity >= 1 && keywordDensity <= 3 ? 30 : 
+                          keywordDensity > 0 && keywordDensity < 1 ? 20 :
+                          keywordDensity > 3 && keywordDensity <= 5 ? 20 : 10;
+      const readabilityScoreValue = readabilityScore * 0.3;
+      const tagsScore = tags && tags.length >= 3 ? 10 : tags ? tags.length * 3 : 0;
+      
       const seoScore = Math.min(100, Math.max(0, 
-        (readabilityScore * 0.3) + 
-        (keywordDensity >= 1 && keywordDensity <= 3 ? 30 : keywordDensity > 3 ? 20 : 10) + 
-        (wordCount >= 2000 ? 30 : wordCount / 2000 * 30) +
-        (tags.length >= 3 ? 10 : tags.length * 3)
+        readabilityScoreValue + 
+        keywordScore + 
+        contentLengthScore +
+        tagsScore
       ));
       
-      setSeoMetrics({
+      const metrics = {
         seo_score: Math.round(seoScore),
         keyword_density: keywordDensity,
         readability_score: Math.round(readabilityScore)
+      };
+      
+      console.log('SEO 분석 결과:', {
+        keywordMatches,
+        keywordDensity,
+        readabilityScore,
+        contentLengthScore,
+        keywordScore,
+        readabilityScoreValue,
+        tagsScore,
+        seoScore,
+        finalMetrics: metrics
       });
+      
+      setSeoMetrics(metrics);
       
       setCurrentStep(4);
     } catch (error: unknown) {

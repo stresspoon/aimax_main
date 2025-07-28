@@ -8,12 +8,12 @@ import { LoginButton } from '../../components/auth/LoginButton';
 
 interface Step1Data {
   topic: string;
+  contentType: 'informational' | 'sales' | '';
 }
 
 interface Step2Data {
   generatedTitle: string;
   editedTitle: string;
-  contentType: 'informational' | 'sales' | '';
 }
 
 interface Step3Data {
@@ -29,19 +29,19 @@ interface GeneratedContent {
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-// API 설정
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function AIWriting() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   
   // Step data
-  const [step1Data, setStep1Data] = useState<Step1Data>({ topic: '' });
+  const [step1Data, setStep1Data] = useState<Step1Data>({ 
+    topic: '', 
+    contentType: '' 
+  });
   const [step2Data, setStep2Data] = useState<Step2Data>({
     generatedTitle: '',
-    editedTitle: '',
-    contentType: ''
+    editedTitle: ''
   });
   const [step3Data, setStep3Data] = useState<Step3Data>({
     primaryKeyword: '',
@@ -60,6 +60,11 @@ export default function AIWriting() {
   const generateSEOTitle = async () => {
     if (!step1Data.topic.trim()) {
       setErrors({ topic: '키워드나 주제를 입력해주세요.' });
+      return;
+    }
+    
+    if (!step1Data.contentType) {
+      setErrors({ contentType: '콘텐츠 타입을 선택해주세요.' });
       return;
     }
 
@@ -143,11 +148,6 @@ export default function AIWriting() {
   };
 
   // 생성된 콘텐츠 상태 확장
-  const [seoMetrics, setSeoMetrics] = useState({
-    seo_score: 0,
-    keyword_density: 0,
-    readability_score: 0
-  });
   const [contentOutline, setContentOutline] = useState<string[]>([]);
   const [metaDescription, setMetaDescription] = useState('');
 
@@ -288,13 +288,46 @@ export default function AIWriting() {
                     type="text"
                     id="topic"
                     value={step1Data.topic}
-                    onChange={(e) => setStep1Data({ topic: e.target.value })}
+                    onChange={(e) => setStep1Data(prev => ({ ...prev, topic: e.target.value }))}
                     placeholder="예: 디지털 마케팅, 홈트레이닝, 재테크 방법"
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text ${
                       errors.topic ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
                   {errors.topic && <span className="text-red-500 text-sm mt-1 block">{errors.topic}</span>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text mb-2">
+                    콘텐츠 타입 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep1Data(prev => ({ ...prev, contentType: 'informational' }))}
+                      className={`p-3 border rounded-lg text-left transition-colors ${
+                        step1Data.contentType === 'informational'
+                          ? 'border-text bg-text/5 text-text'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="font-medium">정보성 콘텐츠</div>
+                      <div className="text-sm text-gray-600">지식, 팁, 가이드</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStep1Data(prev => ({ ...prev, contentType: 'sales' }))}
+                      className={`p-3 border rounded-lg text-left transition-colors ${
+                        step1Data.contentType === 'sales'
+                          ? 'border-text bg-text/5 text-text'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="font-medium">판매성 콘텐츠</div>
+                      <div className="text-sm text-gray-600">제품/서비스 홍보</div>
+                    </button>
+                  </div>
+                  {errors.contentType && <span className="text-red-500 text-sm mt-1 block">{errors.contentType}</span>}
                 </div>
 
                 {/* API 에러 표시 */}

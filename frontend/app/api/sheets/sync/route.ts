@@ -67,8 +67,8 @@ export async function GET() {
       );
     }
 
-    const { ApplicantStorage } = await import('@/lib/applicantStorage');
-    const logs = await ApplicantStorage.getSyncLogs();
+    const { MemoryStorage } = await import('@/lib/memoryStorage');
+    const logs = await MemoryStorage.getSyncLogs();
 
     return NextResponse.json({
       success: true,

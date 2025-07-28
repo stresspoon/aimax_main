@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { ApplicantStorage } from '@/lib/applicantStorage';
+import { MemoryStorage } from '@/lib/memoryStorage';
 
 // 신청자 목록 조회
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
       );
     }
 
-    const applicants = await ApplicantStorage.getAllApplicants();
+    const applicants = await MemoryStorage.getAllApplicants();
 
     return NextResponse.json({
       success: true,
@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const existingApplicant = await ApplicantStorage.getApplicantByEmail(email);
+    const existingApplicant = await MemoryStorage.getApplicantByEmail(email);
     if (!existingApplicant) {
       return NextResponse.json(
         { error: '해당 신청자를 찾을 수 없습니다.' },
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest) {
       notes: notes || existingApplicant.notes,
     };
 
-    const result = await ApplicantStorage.upsertApplicant(updatedApplicant);
+    const result = await MemoryStorage.upsertApplicant(updatedApplicant);
 
     return NextResponse.json({
       success: true,

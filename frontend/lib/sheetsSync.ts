@@ -4,7 +4,7 @@
 
 import { google } from 'googleapis';
 import { Applicant, SyncResult, SheetDataRow, ApplicantSheet } from '@/types/applicant';
-import { ApplicantStorage } from './applicantStorage';
+import { MemoryStorage } from './memoryStorage';
 
 export class SheetsSync {
   private accessToken: string;
@@ -70,7 +70,7 @@ export class SheetsSync {
             continue;
           }
 
-          const upsertResult = await ApplicantStorage.upsertApplicant(applicant);
+          const upsertResult = await MemoryStorage.upsertApplicant(applicant);
           
           if (upsertResult.isNew) {
             result.newApplicants++;
@@ -85,13 +85,13 @@ export class SheetsSync {
       result.success = result.errors.length === 0 || (result.newApplicants + result.updatedApplicants) > 0;
 
       // 동기화 결과 로그 저장
-      await ApplicantStorage.logSyncResult(result);
+      await MemoryStorage.logSyncResult(result);
 
       return result;
 
     } catch (error) {
       result.errors.push(`동기화 오류: ${error}`);
-      await ApplicantStorage.logSyncResult(result);
+      await MemoryStorage.logSyncResult(result);
       return result;
     }
   }

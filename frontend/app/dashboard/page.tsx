@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LoginButton } from '../../components/auth/LoginButton';
 import { AuthGuard } from '../../components/auth/AuthGuard';
+import SheetConnector from '../../components/sheets/SheetConnector';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -144,6 +145,15 @@ export default function Dashboard() {
               )}
             </div>
           ))}
+        </div>
+
+        {/* 구글시트 연동 섹션 */}
+        <div className="mt-16">
+          <SheetConnector 
+            onSheetConnected={(sheet) => {
+              console.log('시트 연동 완료:', sheet);
+            }}
+          />
         </div>
 
         <div className="mt-16 text-center">

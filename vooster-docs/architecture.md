@@ -1,114 +1,185 @@
-# 기술 요구사항 문서 (TRD)
+# Technical Requirements Document (TRD)
 
-## 1. 개요 기술 요약
+## 1. Executive Technical Summary
+- **프로젝트 개요**  
+  웹 기반 SaaS 형태의 체험단 자동화 시스템.  
+  Frontend는 Next.js 기반 SPA, Backend는 Node.js(Express) 단일 서비스로 구현.  
+  Google Sheets API·OAuth2로 신청 데이터 수집, Redis 기반 큐로 배치 처리, SNS API/크롤링으로 영향력 검증, SendGrid(AWS SES)로 메일 발송.  
+- **핵심 기술 스택**  
+  Frontend: Next.js + Tailwind CSS  
+  Backend: Node.js + Express + Prisma ORM  
+  DB: PostgreSQL, Cache/Queue: Redis + Bull  
+  메일: SendGrid (AWS SES 대안)  
+  인프라: Docker, AWS(EKS/ECR) 또는 GCP(GKE) + Kubernetes  
+- **주요 기술 목표**  
+  ·평균 응답 시간 ≤ 2초  
+  ·동시 신청자 처리 100명/분 이상  
+  ·메일 발송 성공률 ≥ 99.5%  
+  ·시스템 가동률 ≥ 99.9%  
+- **핵심 가정**  
+  ·Google API 호출 할당량 충분  
+  ·SNS 크롤링 및 API 호출 지연 허용 범위 내  
+  ·단일 서비스로 시작 후 확장 필요시 마이크로서비스 전환 가능
 
-### 프로젝트 개요
-본 문서는 생성형 AI를 활용한 마케팅 콘텐츠 자동화 웹 서비스의 기술적 요구사항을 정의합니다. 프로젝트의 핵심 목표는 1인 사업자 및 소규모 마케터가 최소한의 노력으로 SEO 블로그 글, SNS 콘텐츠 등을 생성할 수 있는 플랫폼을 신속하게 구축하는 것입니다. 초기 단계에서는 시장의 빠른 진입을 위해 핵심 기능인 'AI 글쓰기'에 집중하며, 안정적이고 확장 가능한 기반을 마련하는 데 중점을 둡니다. 아키텍처는 MVP(최소 기능 제품)의 즉시 출시를 위해 단순화된 단일 백엔드 구조로 시작하며, 서비스 성장에 따라 점진적으로 고도화할 계획입니다.
+## 2. Tech Stack
 
-### 핵심 기술 스택
-- **프론트엔드**: Next.js (React), Tailwind CSS
-- **백엔드**: Python (FastAPI)
-- **데이터베이스**: PostgreSQL (주요 데이터), Redis (캐싱/세션), Amazon S3 (콘텐츠 저장)
-- **AI 및 외부 연동**: Google Gemini API, Naver 검색어 트렌드 API, 소셜 로그인(OAuth 2.0)
-- **인프라**: AWS App Runner (백엔드/프론트엔드 배포), Amazon RDS (PostgreSQL), Amazon ElastiCache (Redis)
+| Category        | Technology / Library       | Reasoning (선택 근거)                                       |
+| --------------- | -------------------------- | ----------------------------------------------------------- |
+| Frontend        | Next.js                    | SSR/SSG 지원으로 초기 로딩 및 SEO 최적화, React 생태계 활용 |
+| Styling         | Tailwind CSS               | 유연한 유틸리티 클래스, 빠른 UI 구현                        |
+| Backend         | Node.js + Express          | 가벼운 REST API 서버, 개발 생산성 및 커뮤니티 지원          |
+| ORM             | Prisma                     | 타입 안전성, 직관적 쿼리 빌더, 마이그레이션 지원           |
+| Database        | PostgreSQL                 | ACID 보장, JSONB 지원, 확장성                             |
+| Cache / Queue   | Redis + Bull               | 빠른 캐싱, 안정적 작업 큐 관리                             |
+| 메일 발송       | SendGrid (AWS SES)         | 신뢰도 높은 트랜잭션 메일, API 기반 대량 발송              |
+| 인증·인가       | OAuth2 (Google), JWT       | 구글 로그인 간편화, 토큰 기반 세션 관리                    |
+| SNS 검증        | Puppeteer / axios 크롤링   | 비공개 API 지원 시 헤드리스 브라우저 크롤링, API 호출 혼용 |
+| 인프라·배포     | Docker, Kubernetes (EKS/GKE)| 컨테이너화·오케스트레이션, 자동 확장 및 롤링 업데이트      |
+| 모니터링        | Prometheus + Grafana       | 메트릭 수집·시각화, 알림 설정 가능                         |
+| 로깅·추적       | ELK Stack (Elasticsearch, Kibana, Logstash) | 중앙 집중형 로그 관리 및 분석              |
 
-### 주요 기술 목표
-- **신속한 MVP 출시**: 8주 내에 로그인 및 핵심 글쓰기 기능을 포함한 MVP 버전 출시
-- **안정적인 AI 연동**: Gemini 및 Naver API와의 안정적인 연동을 통해 일관된 품질의 콘텐츠 생성 보장
-- **사용자 경험 최적화**: 실시간 글자 수 계산, 즉각적인 복사 기능 등 직관적이고 빠른 사용자 인터페이스 제공
-- **확장성 기반 마련**: 향후 기능 추가 및 사용자 증가에 유연하게 대응할 수 있는 단순하고 명확한 코드 구조 설계
+## 3. System Architecture Design
 
-### 핵심 기술 가정
-- 초기 사용자 트래픽은 복잡한 오토스케일링(예: Kubernetes) 없이 AWS App Runner의 기본 스케일링 기능으로 충분히 감당 가능하다고 가정합니다.
-- 외부 API(Gemini, Naver)의 응답 속도 및 안정성이 서비스 전체 성능에 직접적인 영향을 미치므로, 이에 대한 예외 처리 및 비동기 처리가 필수적입니다.
-- MVP 단계에서는 복잡한 데이터 분석 파이프라인(Kinesis, Redshift) 대신 기본적인 로그 수집 및 분석(CloudWatch)으로 충분합니다.
+### Top-Level 빌딩 블록
+- **Frontend (Next.js)**
+  - 페이지 라우팅, OAuth2 로그인, 대시보드 UI  
+- **Backend API (Express)**
+  - RESTful 엔드포인트, 인증·인가, 비즈니스 로직  
+- **Job Queue (Bull on Redis)**
+  - Google Sheets 동기화, SNS 검증, 메일 발송 작업 스케줄링  
+- **Database (PostgreSQL)**
+  - 신청자·결과·로그 등 주요 데이터 저장  
+- **Cache (Redis)**
+  - API 호출 속도 개선, 자격 검증 임시 저장  
+- **External Services**
+  - Google Sheets API, SNS 크롤링, SendGrid API  
+- **Infra & Monitoring**
+  - Kubernetes 클러스터, Prometheus·Grafana 모니터링, ELK 로깅  
 
-## 2. 기술 스택
-
-| 범주 | 기술 / 라이브러리 | 선정 사유 |
-| --- | --- | --- |
-| **프론트엔드** | Next.js (React) | 요구사항에 명시됨. SEO 최적화에 유리하며, 서버 사이드 렌더링(SSR)을 통해 초기 로딩 성능을 개선할 수 있음. |
-| | Tailwind CSS | 요구사항에 명시됨. 유틸리티 기반 스타일링으로 신속한 UI 개발 및 일관된 디자인 시스템 적용에 용이함. |
-| **백엔드** | Python (FastAPI) | 요구사항에 명시됨. AI/ML 연동에 강점을 가지며, 비동기 처리를 지원하여 외부 API 호출이 많은 서비스에 적합. 개발 생산성이 높음. |
-| **데이터베이스** | PostgreSQL | 요구사항에 명시됨. 정형 데이터(사용자 정보, 콘텐츠 메타데이터)를 안정적으로 관리하기 위한 관계형 데이터베이스. |
-| | Redis | 요구사항에 명시됨. 외부 API 응답 결과 캐싱, 사용자 세션 관리 등을 통해 시스템 전반의 응답 속도를 향상시키기 위함. |
-| | Amazon S3 | 요구사항에 명시됨. 생성된 글(HTML, TEXT) 및 관련 미디어 파일을 비용 효율적으로 저장하고 관리하기 위함. |
-| **AI 모델** | Google Gemini API (gemini-2.5-pro) | 요구사항에 명시됨. 핵심 기능인 제목 및 본문 생성에 사용. 최신 모델을 활용하여 고품질의 결과물 도출. |
-| **인프라/배포** | AWS App Runner | 컨테이너 기반 애플리케이션을 가장 빠르고 간단하게 배포 및 확장할 수 있는 관리형 서비스. MVP의 신속한 배포 목표에 부합. |
-| **외부 연동** | Naver 검색어 트렌드 API | 요구사항에 명시됨. 사용자에게 연관 키워드를 추천하여 콘텐츠의 SEO 품질을 높이는 데 활용. |
-| | OAuth 2.0 (소셜 로그인) | 사용자의 가입 및 로그인 허들을 낮추기 위한 표준 프로토콜. Google, Kakao 등 주요 플랫폼 연동. |
-
-## 3. 시스템 아키텍처 설계
-
-### 최상위 구성 요소
-- **프론트엔드 (웹 애플리케이션)**: Next.js로 구축된 단일 페이지 애플리케이션(SPA). 사용자와의 모든 상호작용을 처리하며, AWS의 CDN(CloudFront)을 통해 전역 사용자에게 빠르게 제공됩니다.
-  - 하위 구성 요소: UI 컴포넌트, 상태 관리, API 클라이언트, 라우팅
-- **백엔드 API 서버**: Python FastAPI로 구현된 단일(Monolithic) API 서버. 사용자 인증, 비즈니스 로직 처리, 데이터베이스 연동 및 외부 AI/데이터 API 호출을 총괄합니다.
-  - 하위 구성 요소: API 엔드포인트, 비즈니스 로직 서비스, 데이터베이스 접근 계층(ORM), 외부 API 연동 모듈
-- **데이터 스토어**: 서비스의 데이터를 저장하고 관리하는 구성 요소 집합입니다.
-  - 하위 구성 요소: Amazon RDS for PostgreSQL (영구 데이터), Amazon ElastiCache for Redis (임시/캐시 데이터), Amazon S3 (파일 객체)
-- **외부 서비스**: 서비스의 핵심 기능을 위해 연동되는 제3자 API입니다.
-  - 하위 구성 요소: Google Gemini API, Naver API, 소셜 로그인 제공자(IdP)
-
-### 최상위 컴포넌트 상호작용 다이어그램
+### Top-Level Component Interaction Diagram
 ```mermaid
 graph TD
-    subgraph "사용자 환경"
-        A[사용자 브라우저]
-    end
-
-    subgraph "AWS 클라우드"
-        B[프론트엔드 (Next.js on App Runner/CloudFront)]
-        C[백엔드 API (FastAPI on App Runner)]
-        D[데이터베이스 (PostgreSQL on RDS)]
-        E[캐시 (Redis on ElastiCache)]
-        F[파일 스토리지 (S3)]
-    end
-
-    subgraph "외부 서비스"
-        G[Google Gemini API]
-        H[Naver API]
-        I[소셜 로그인 제공자]
-    end
-
-    A -- HTTPS --> B
-    B -- API 요청 --> C
-    C -- 인증 요청 --> I
-    C -- DB 쿼리 --> D
-    C -- 캐시 조회/저장 --> E
-    C -- 파일 업로드/다운로드 --> F
-    C -- AI 생성 요청 --> G
-    C -- 키워드 추천 요청 --> H
+    A[사용자(UI)] --> B[Next.js Frontend]
+    B --> C[Express Backend]
+    C --> D[PostgreSQL]
+    C --> E[Redis/Bull Queue]
+    E --> F[작업 Worker]
+    F --> G[Google Sheets API]
+    F --> H[SNS 크롤러/API]
+    F --> I[SendGrid API]
+    C --> J[Prometheus/Grafana]
+    C --> K[ELK Stack]
 ```
 
-- **사용자 요청 처리**: 사용자는 브라우저를 통해 프론트엔드 애플리케이션에 접속합니다. 프론트엔드는 정적 콘텐츠를 제공하고 API 서버에 데이터(예: 글 생성 요청)를 보냅니다.
-- **백엔드 로직 수행**: 백엔드 API 서버는 사용자 요청을 받아 인증(소셜 로그인)을 처리하고, 비즈니스 로직을 수행합니다. 글 생성 요청 시, Gemini API와 Naver API를 호출하여 필요한 데이터를 조합합니다.
-- **데이터 관리**: 사용자 정보, 생성된 콘텐츠의 메타데이터 등은 PostgreSQL에 저장됩니다. 자주 사용되거나 생성 비용이 높은 데이터(예: API 응답)는 Redis에 캐싱하여 성능을 최적화합니다. 생성된 글의 원본 파일은 S3에 저장됩니다.
-- **외부 API 연동**: 백엔드는 핵심 기능 구현을 위해 외부 서비스(Gemini, Naver)와 통신하며, 이 과정에서 발생할 수 있는 지연은 비동기 방식으로 처리하여 사용자 경험 저하를 최소화합니다.
+- 사용자(UI) → Next.js → Express API 요청  
+- Express → PostgreSQL/Redis로 데이터 저장 및 캐싱  
+- Express → Bull Queue에 백그라운드 작업 추가  
+- Worker → Google Sheets, SNS, SendGrid 외부 API 호출  
+- 시스템 메트릭 및 로그 → Prometheus/Grafana, ELK로 수집  
 
-### 코드 구조 및 컨벤션
-**도메인 주도 구성 전략**
-- **도메인 분리**: 비즈니스 도메인(예: 사용자 관리, 글쓰기, 인증)을 기준으로 코드를 구성하여 응집도를 높이고 결합도를 낮춥니다.
-- **계층 기반 아키텍처**: 각 도메인 내에서는 프레젠테이션(API 엔드포인트), 비즈니스 로직(서비스), 데이터 접근(리포지토리) 계층으로 명확히 분리합니다.
-- **기능 기반 모듈**: 특정 기능과 관련된 파일(예: 라우트, 서비스, 모델)을 하나의 폴더에 그룹화하여 관련 코드 파악을 용이하게 합니다.
-- **공유 컴포넌트**: 공통 유틸리티, 설정, 타입 정의 등은 전용 공유 모듈에 배치하여 중복을 제거합니다.
+### Code Organization & Convention
 
-**범용 파일 및 폴더 구조 (백엔드 FastAPI 기준)**
+**도메인 주도 설계(DDD) 전략**  
+- Domain Separation: `auth`, `sheet`, `snsValidation`, `mail`, `dashboard` 등  
+- Layer-Based Architecture:  
+  ·presentation (Controller)  
+  ·service (비즈니스 로직)  
+  ·repository (데이터 액세스)  
+  ·infrastructure (외부 API)  
+- Feature-Based Modules: 각 도메인별 폴더  
+- Shared Components: `utils`, `common`, `types`
+
+**파일·폴더 구조 예시**
 ```
-/
-├── app/
-│   ├── __init__.py
-│   ├── main.py             # FastAPI 앱 초기화 및 미들웨어 설정
-│   ├── core/               # 프로젝트 핵심 설정
-│   │   ├── __init__.py
-│   │   └── config.py       # 환경 변수, 설정 값 관리
-│   ├── db/                 # 데이터베이스 연결 및 세션 관리
-│   │   ├── __init__.py
-│   │   └── session.py
-│   ├── domains/            # 비즈니스 도메인별 모듈
-│   │   ├── __init__.py
-│   │   ├── auth/           # 인증 및 사용자 관리 도메인
-│   │   │   ├── __init__.py
-│   │   │   ├── auth_router.py
-│   │   │   ├── auth_service.py
-│   
+/src
+├── auth
+│   ├── auth.controller.ts
+│   ├── auth.service.ts
+│   └── auth.repository.ts
+├── sheet
+│   ├── sheet.controller.ts
+│   ├── sheet.service.ts
+│   └── sheet.repository.ts
+├── snsValidation
+│   ├── sns.controller.ts
+│   ├── sns.service.ts
+│   └── sns.provider.ts
+├── mail
+│   ├── mail.controller.ts
+│   ├── mail.service.ts
+│   └── mail.provider.ts
+├── dashboard
+│   ├── dashboard.controller.ts
+│   └── dashboard.service.ts
+├── common
+│   ├── dto
+│   ├── filters
+│   ├── interceptors
+│   └── utils.ts
+├── config
+│   └── index.ts
+├── jobs
+│   ├── sheet.job.ts
+│   ├── sns.job.ts
+│   └── mail.job.ts
+├── prisma
+│   └── schema.prisma
+└── app.ts
+```
+
+### Data Flow & Communication Patterns
+- **Client-Server Communication**  
+  RESTful JSON API, JWT 인증 헤더 사용  
+- **Database Interaction**  
+  Prisma ORM, connection pool 관리  
+- **External Service Integration**  
+  Google Sheets API (OAuth2 토큰 재사용), SNS 크롤링(Headless Chrome/Puppeteer + axios)  
+- **Background Job Processing**  
+  Bull 큐를 통한 작업 스케줄링 및 재시도 정책  
+- **데이터 동기화**  
+  주기적 배치(트리거 방식) + 실시간 웹훅 처리
+
+## 4. Performance & Optimization Strategy
+- Redis 캐싱 활용으로 빈번 요청 데이터 응답 속도 향상  
+- DB 인덱스 최적화 및 Prisma 쿼리 튜닝  
+- Bull 큐 동시 처리(worker concurrency) 조정  
+- HTTP Keep-Alive, Gzip 압축, CDN 활용으로 Frontend 정적 리소스 최적화  
+
+## 5. Implementation Roadmap & Milestones
+
+### Phase 1: Foundation (MVP 구현, 4주)
+- Core Infrastructure: Docker · Kubernetes 클러스터 구성, CI/CD 파이프라인  
+- Essential Features: Google Sheets 연동, 신청 데이터 수집 모듈  
+- Basic Security: OAuth2 로그인, JWT 인증  
+- Development Setup: 코드베이스 구조, Prisma 마이그레이션  
+- Timeline: 4주
+
+### Phase 2: Feature Enhancement (기능 확장, 4주)
+- SNS 영향력 검증: 크롤링 및 API 연동 구현  
+- 메일 발송 시스템: Bull 스케줄러 + SendGrid 연동  
+- 대시보드 기본: 신청·선정 현황 조회 UI  
+- 보안 강화: HTTPS, CSP, 입력 검증  
+- Monitoring: Prometheus·Grafana·ELK 세팅  
+- Timeline: 4주
+
+### Phase 3: Scaling & Optimization (최적화·확장, 5주)
+- 멀티테넌트 지원: 브랜드별 DB 스키마 분리 또는 논리 분리  
+- 성능 튜닝: Auto-scaling, HPA 설정, Redis 클러스터링  
+- 고급 대시보드: 필터·차트·리포트  
+- 규제 준수: GDPR, 개인정보보호법 감사 로그  
+- Timeline: 5주
+
+## 6. Risk Assessment & Mitigation Strategies
+
+### Technical Risk Analysis
+- 기술 리스크: SNS API 제한 → 크롤링 병행, 요청 레이트 리밋 준수  
+- 성능 리스크: 동시 처리 한계 → 큐 동시성 조정, 오토스케일링  
+- 보안 리스크: 토큰 탈취 → HTTPS, JWT 만료·리프레시 정책  
+- 통합 리스크: Google API 오류 → 재시도 및 백오프 로직, 로컬 동기화  
+
+### Project Delivery Risks
+- 일정 리스크: 외부 API 연동 지연 → 초기 프로토콜 스펙 확정, 대체 경로 확보  
+- 자원 리스크: 전문 인력 부족 → 외부 컨설팅, 온보딩 문서화  
+- 품질 리스크: 테스트 커버리지 부족 → E2E·단위 테스트 자동화  
+- 배포 리스크: 롤백 계획 부재 → 카나리 배포, Helm 차트 기반 버전 관리  
+- 비상 계획: 핵심 모듈 이슈 시 수동 운영 가이드 제공, 임시 백업·복구 절차 마련

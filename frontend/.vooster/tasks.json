@@ -1,6 +1,6 @@
 {
-  "totalCount": 8,
-  "downloadedAt": "2025-07-27T21:13:39.098Z",
+  "totalCount": 16,
+  "downloadedAt": "2025-07-28T10:41:17.262Z",
   "tasks": [
     {
       "taskId": "T-001",
@@ -81,6 +81,86 @@
       "urgency": 7,
       "createdAt": "2025-07-24T21:33:33.901Z",
       "updatedAt": "2025-07-24T21:33:33.901Z"
+    },
+    {
+      "taskId": "T-009",
+      "summary": "구글시트 연동 기능 개발",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 4,
+      "urgency": 10,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-010",
+      "summary": "신청자 데이터 실시간 수집 및 저장 기능 구현",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 5,
+      "urgency": 10,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-011",
+      "summary": "SNS 영향력 자동 검증 기능 개발",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 6,
+      "urgency": 9,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-012",
+      "summary": "선정/비선정 자동 처리 및 결과 기록",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 4,
+      "urgency": 9,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-013",
+      "summary": "메일 자동 발송 시스템 및 템플릿 관리 기능 구현",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 7,
+      "urgency": 9,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-014",
+      "summary": "브랜드별 대시보드 구현",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 5,
+      "urgency": 8,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-015",
+      "summary": "관리자 온보딩 및 UX 개선",
+      "status": "BACKLOG",
+      "importance": "SHOULD",
+      "complexity": 4,
+      "urgency": 7,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
+    },
+    {
+      "taskId": "T-016",
+      "summary": "MVP 통합 테스트 및 사용자 피드백 수집",
+      "status": "BACKLOG",
+      "importance": "MUST",
+      "complexity": 5,
+      "urgency": 8,
+      "createdAt": "2025-07-28T10:28:23.111Z",
+      "updatedAt": "2025-07-28T10:28:23.111Z"
     }
   ]
 }

@@ -20,7 +20,10 @@
       "Bash(pip3 install:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(npx @vooster/cli@latest rules:init:*)",
+      "Bash(npx @vooster/cli@latest task:get:*)",
+      "Bash(npx:*)"
     ],
     "deny": []
   }

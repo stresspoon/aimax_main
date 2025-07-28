@@ -6,6 +6,11 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'openid email profile https://www.googleapis.com/auth/spreadsheets'
+        }
+      }
     }),
   ],
   callbacks: {
@@ -13,11 +18,19 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
+      // Google access_token을 session에 포함
+      if (token.accessToken) {
+        (session as any).accessToken = token.accessToken;
+      }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
+      }
+      // Google OAuth에서 받은 access_token 저장
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
       }
       return token;
     },

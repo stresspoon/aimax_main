@@ -1,396 +1,449 @@
-# 코드 가이드라인 문서
+# Code Guideline Document: Automated Experience Group System
 
-## 1. 프로젝트 개요
+## 1. Project Overview
 
-본 프로젝트는 생성형 AI를 활용하여 SEO 기반 글쓰기, SNS 콘텐츠 기획, 상세페이지 기획을 자동화하는 웹/앱 서비스입니다. 1인 및 소규모 사업자가 전문적인 마케팅 콘텐츠를 효율적으로 제작할 수 있도록 돕는 것을 목표로 합니다.
+This document outlines the coding standards and practices for the Automated Experience Group System, a web-based SaaS platform designed to automate the selection and management of experience group applicants. The system leverages Google Forms for data collection, performs automated SNS influence verification, and dispatches automated emails to selected and unselected applicants.
 
-TRD에 명시된 주요 기술 스택 및 아키텍처는 다음과 같습니다:
+**Key Architectural Decisions:**
+*   **Frontend:** Next.js with Tailwind CSS for optimized loading and responsive UI.
+*   **Backend:** Node.js with Express and Prisma ORM for a lightweight REST API server.
+*   **Database:** PostgreSQL for main data storage, Redis for caching and job queuing (Bull).
+*   **External Integrations:** Google Sheets API, SNS crawling (Puppeteer/Axios), SendGrid (or AWS SES) for email.
+*   **Infrastructure:** Docker and Kubernetes (AWS EKS/GKE) for containerization and orchestration.
+*   **Design Philosophy:** Domain-Driven Design (DDD) with a layered architecture to ensure modularity and separation of concerns.
 
-*   **프론트엔드**: Next.js (React), Tailwind CSS
-*   **백엔드**: Python (FastAPI)
-*   **데이터베이스**: PostgreSQL, Redis, Amazon S3
-*   **AI 및 외부 연동**: Google Gemini API, Naver 검색어 트렌드 API, OAuth 2.0
-*   **인프라**: AWS App Runner, Amazon RDS, Amazon ElastiCache
+## 2. Core Principles
 
-아키텍처는 MVP의 신속한 출시를 위해 단일(Monolithic) 백엔드 구조로 시작하며, 향후 서비스 성장에 따라 점진적으로 마이크로서비스 아키텍처로 전환될 수 있음을 고려하여 설계되었습니다.
+1.  **Readability over Cleverness:** Code MUST be easily understood by any developer on the team.
+2.  **Modularity and Single Responsibility:** Each component, function, or module MUST have a single, clearly defined purpose.
+3.  **Testability and Maintainability:** Code MUST be designed to be easily tested and modified without introducing regressions.
+4.  **Performance and Scalability:** Solutions MUST consider performance implications and be designed for future scaling.
+5.  **Security by Design:** Security considerations MUST be integrated from the initial design phase.
 
-## 2. 핵심 원칙
+## 3. Language-Specific Guidelines
 
-*   **가독성**: 모든 코드는 명확하고 이해하기 쉬워야 합니다.
-*   **유지보수성**: 변경 및 확장이 용이하도록 모듈화되고 일관성 있게 작성되어야 합니다.
-*   **성능**: 효율적인 알고리즘과 최적화된 리소스 사용을 통해 서비스의 응답 속도를 보장해야 합니다.
-*   **안정성**: 예외 처리 및 견고한 설계를 통해 오류 발생 가능성을 최소화해야 합니다.
-*   **보안**: 민감 정보 처리 및 외부 연동 시 보안 취약점을 최소화해야 합니다.
+### 3.1. Frontend (Next.js, React, TypeScript)
 
-## 3. 언어별 가이드라인
+#### File Organization and Directory Structure
 
-### 3.1. 백엔드 (Python / FastAPI)
-
-#### 3.1.1. 파일 구성 및 디렉토리 구조
-
-TRD에 명시된 도메인 주도 구성 전략을 따릅니다.
-
-```
-/app
-├── main.py             # FastAPI 앱 초기화 및 미들웨어 설정
-├── core/               # 핵심 설정 및 유틸리티
-│   ├── config.py       # 환경 변수, 설정 값
-│   └── security.py     # 인증 및 보안 관련 유틸리티
-├── db/                 # 데이터베이스 연결 및 세션 관리
-│   ├── database.py     # SQLAlchemy 엔진, 세션 생성
-│   └── base.py         # SQLAlchemy 선언적 기본 클래스
-├── domains/            # 비즈니스 도메인별 모듈
-│   ├── auth/           # 인증 및 사용자 관리
-│   │   ├── router.py   # FastAPI 라우터 (API 엔드포인트)
-│   │   ├── service.py  # 비즈니스 로직
-│   │   ├── crud.py     # 데이터베이스 CRUD 작업 (선택 사항, 리포지토리 패턴 권장)
-│   │   ├── models.py   # SQLAlchemy 모델 (DB 스키마)
-│   │   ├── schemas.py  # Pydantic 스키마 (요청/응답 유효성 검사)
-│   │   └── dependencies.py # 의존성 주입
-│   ├── content/        # 콘텐츠 생성 및 관리
-│   │   ├── router.py
-│   │   ├── service.py
-│   │   ├── models.py
-│   │   └── schemas.py
-│   └── ...
-├── external/           # 외부 API 연동 모듈
-│   ├── gemini_api.py
-│   ├── naver_api.py
-│   └── ...
-├── utils/              # 공통 유틸리티 함수
-│   ├── __init__.py
-│   └── helpers.py
-└── tests/              # 테스트 코드
-```
-
-*   **MUST**: 각 도메인(예: `auth`, `content`)은 `router.py`, `service.py`, `models.py`, `schemas.py` 등으로 구성하여 책임 분리를 명확히 합니다.
-*   **MUST**: `schemas.py` 파일은 Pydantic 모델을 정의하여 API 요청/응답의 유효성을 검사하고 문서화합니다.
-*   **MUST**: `service.py` 파일은 비즈니스 로직을 포함하며, `crud.py` 또는 리포지토리 패턴을 통해 데이터베이스와 상호작용합니다.
-*   **MUST NOT**: 단일 파일에 여러 도메인의 로직을 혼합하여 작성하지 않습니다.
-
-#### 3.1.2. 임포트 및 의존성 관리
-
-*   **MUST**: 절대 경로 임포트를 사용합니다. (예: `from app.domains.auth import service`)
-*   **MUST**: `main.py`에서는 필요한 라우터를 등록하고, 각 라우터 파일에서 해당 도메인의 서비스 및 의존성을 주입합니다.
-*   **MUST**: `FastAPI`의 `Depends`를 활용하여 의존성 주입을 명확히 합니다.
-
-```python
-# MUST: 의존성 주입 예시 (app/domains/auth/router.py)
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.domains.auth.service import AuthService
-from app.domains.auth.schemas import UserCreate, UserResponse
-
-router = APIRouter(prefix="/auth", tags=["Auth"])
-
-@router.post("/register", response_model=UserResponse)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # AuthService는 db 세션을 의존성으로 받습니다.
-    auth_service = AuthService(db)
-    db_user = auth_service.create_user(user)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already registered")
-    return db_user
-```
-
-#### 3.1.3. 오류 처리 패턴
-
-*   **MUST**: FastAPI의 `HTTPException`을 사용하여 표준 HTTP 오류 응답을 반환합니다.
-*   **MUST**: 커스텀 예외를 정의할 경우, `HTTPException`을 상속하거나, `RequestValidationException`과 같은 FastAPI 내장 예외를 활용합니다.
-*   **MUST**: 외부 API 호출 시 `try-except` 블록을 사용하여 예상치 못한 오류를 처리하고, 사용자에게 의미 있는 메시지를 반환합니다.
-
-```python
-# MUST: 오류 처리 예시 (app/domains/content/service.py)
-from app.external.gemini_api import GeminiAPIClient
-from app.core.config import settings
-
-class ContentService:
-    def __init__(self, db: Session):
-        self.db = db
-        self.gemini_client = GeminiAPIClient(api_key=settings.GEMINI_API_KEY)
-
-    async def generate_seo_article(self, keyword: str, tone: str) -> str:
-        try:
-            # 외부 API 호출
-            generated_text = await self.gemini_client.generate_text(
-                prompt=f"'{keyword}'에 대해 {tone}으로 SEO 최적화된 글을 작성해줘."
-            )
-            return generated_text
-        except Exception as e:
-            # 구체적인 예외 처리 및 로깅
-            logger.error(f"Gemini API 호출 중 오류 발생: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="콘텐츠 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
-            )
-
-# MUST NOT: 일반적인 Exception으로 모든 오류를 잡고 상세 정보 없이 반환
-# try:
-#     # ...
-# except Exception as e:
-#     raise HTTPException(status_code=500, detail="An error occurred")
-```
-
-### 3.2. 프론트엔드 (Next.js / React)
-
-#### 3.2.1. 파일 구성 및 디렉토리 구조
-
-*   **MUST**: Next.js의 `app` 라우터 또는 `pages` 라우터 컨벤션을 따릅니다.
-*   **MUST**: 컴포넌트는 `components/` 디렉토리 내에서 재사용 가능한 단위로 분리합니다.
-*   **MUST**: 페이지별 컴포넌트는 `app/` 또는 `pages/` 디렉토리 내에 해당 라우트 경로에 맞춰 구성합니다.
-*   **MUST**: API 호출 로직은 `lib/api/` 또는 `services/` 디렉토리에 정의합니다.
-*   **MUST**: 상태 관리는 `store/` 또는 `hooks/` 디렉토리에 정의합니다.
+*   **MUST:** Organize files by feature or domain, following a co-located approach.
+*   **MUST:** Use `pages`, `components`, `hooks`, `utils`, `types` directories at the root.
+*   **MUST:** Place component-specific styles (if not using Tailwind directly) within the component's directory.
 
 ```
-/
-├── app/                  # Next.js App Router (또는 pages/)
-│   ├── layout.tsx
-│   ├── page.tsx          # 루트 페이지
-│   ├── auth/
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── content/
-│   │   ├── generate/page.tsx
-│   │   └── history/page.tsx
-│   └── api/              # Next.js API Routes (백엔드 API가 아닌 프론트엔드 유틸리티 API)
-│       └── auth/[...nextauth].ts
-├── components/           # 재사용 가능한 UI 컴포넌트
-│   ├── ui/               # Shadcn/ui 등 기본 UI 요소
-│   │   ├── button.tsx
-│   │   └── input.tsx
-│   ├── common/           # 공통 컴포넌트
-│   │   ├── Header.tsx
-│   │   └── Footer.tsx
-│   ├── content/          # 도메인 특정 컴포넌트
-│   │   ├── ContentForm.tsx
-│   │   └── ContentHistoryList.tsx
-│   └── providers/        # Context Provider
-│       └── AuthProvider.tsx
-├── hooks/                # 커스텀 React Hooks
-│   ├── useAuth.ts
-│   └── useContentGenerator.ts
-├── lib/                  # 유틸리티 함수 및 설정
-│   ├── api/              # API 클라이언트 및 타입 정의
-│   │   ├── axios.ts
-│   │   └── types.ts
-│   ├── constants.ts
-│   └── utils.ts
-├── styles/               # Tailwind CSS 설정 및 전역 스타일
-│   └── globals.css
-├── public/               # 정적 자산
-└── types/                # 전역 타입 정의
-    └── index.d.ts
+// MUST: Feature-based organization
+/src
+├── pages
+│   ├── index.tsx
+│   └── dashboard
+│       └── [brandId].tsx
+├── components
+│   ├── common
+│   │   └── Button.tsx
+│   └── dashboard
+│       ├── BrandOverviewCard.tsx
+│       └── ApplicantTable.tsx
+├── hooks
+│   └── useAuth.ts
+├── utils
+│   └── api.ts
+├── types
+│   └── index.ts
+└── styles
+    └── globals.css
 ```
 
-#### 3.2.2. 임포트 및 의존성 관리
+```
+// MUST NOT: Overly nested or generic structure
+/src
+├── views
+│   ├── Dashboard
+│   │   └── BrandPage.tsx
+├── shared
+│   ├── ui
+│   │   └── Button.tsx
+│   └── hooks
+│       └── useApi.ts
+```
 
-*   **MUST**: 절대 경로 임포트를 사용합니다. (예: `import { Button } from '@/components/ui/button'`)
-*   **MUST**: 컴포넌트 간의 의존성은 최소화하고, Props를 통해 데이터를 전달합니다.
-*   **MUST**: `useEffect` 훅 사용 시 의존성 배열을 명확히 지정하여 불필요한 렌더링을 방지합니다.
+#### Import/Dependency Management
+
+*   **MUST:** Use absolute imports for modules within the `src` directory. Configure `tsconfig.json` for path aliases.
+*   **MUST:** Order imports: React/Next.js, external libraries, internal modules, relative imports (styles).
+*   **MUST:** Use named imports for specific exports, default imports for single exports.
 
 ```typescript
-// MUST: 절대 경로 임포트 및 Props 전달 예시
-import React from 'react';
-import { Button } from '@/components/ui/button'; // 절대 경로 임포트
-
-interface MyComponentProps {
-  title: string;
-  onButtonClick: () => void;
-}
-
-const MyComponent: React.FC<MyComponentProps> = ({ title, onButtonClick }) => {
-  return (
-    <div>
-      <h1>{title}</h1>
-      <Button onClick={onButtonClick}>클릭</Button>
-    </div>
-  );
-};
-
-export default MyComponent;
-```
-
-#### 3.2.3. 오류 처리 패턴
-
-*   **MUST**: API 호출 시 `try-catch` 블록을 사용하여 네트워크 오류 및 서버 응답 오류를 처리합니다.
-*   **MUST**: 사용자에게 친화적인 오류 메시지를 표시하고, 필요한 경우 재시도 옵션을 제공합니다.
-*   **MUST**: React Error Boundary를 사용하여 UI 렌더링 중 발생하는 예외를 처리하고 폴백 UI를 제공합니다.
-
-```typescript
-// MUST: API 오류 처리 예시 (lib/api/axios.ts)
+// MUST: Absolute imports and ordered
+import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  timeout: 10000,
+import { getBrandData } from '@/services/brandService';
+import { Brand } from '@/types';
+
+import BrandOverviewCard from '@/components/dashboard/BrandOverviewCard';
+import styles from './DashboardPage.module.css'; // Example for module CSS
+```
+
+```typescript
+// MUST NOT: Relative imports for deep paths, unorganized
+import BrandOverviewCard from '../../../components/dashboard/BrandOverviewCard';
+import { useRouter } from 'next/router';
+import React, { useState } from 'react';
+import { Brand } from '../../types';
+```
+
+#### Error Handling Patterns
+
+*   **MUST:** Use `try-catch` blocks for asynchronous operations.
+*   **MUST:** Display user-friendly error messages in the UI.
+*   **MUST:** Log detailed errors to a centralized logging service (e.g., Sentry).
+
+```typescript
+// MUST: Robust error handling in components
+async function fetchDashboardData() {
+  try {
+    const data = await getBrandData(brandId);
+    setBrandData(data);
+  } catch (error) {
+    console.error('Failed to fetch dashboard data:', error);
+    // Display error to user
+    alert('Failed to load dashboard data. Please try again.');
+    // Log to external service
+    // Sentry.captureException(error);
+  }
+}
+```
+
+### 3.2. Backend (Node.js, Express, TypeScript, Prisma)
+
+#### File Organization and Directory Structure
+
+*   **MUST:** Follow a Domain-Driven Design (DDD) approach with clear separation of concerns.
+*   **MUST:** Structure by domain (`auth`, `sheet`, `snsValidation`, `mail`, `dashboard`), each containing `controller`, `service`, `repository` (or `provider`) files.
+*   **MUST:** Place common utilities, DTOs, and middleware in a `common` directory.
+*   **MUST:** Separate job definitions into a `jobs` directory.
+
+```
+// MUST: Domain-driven and layered architecture
+/src
+├── auth
+│   ├── auth.controller.ts
+│   ├── auth.service.ts
+│   └── auth.repository.ts
+├── sheet
+│   ├── sheet.controller.ts
+│   ├── sheet.service.ts
+│   └── sheet.repository.ts
+├── snsValidation
+│   ├── sns.controller.ts
+│   ├── sns.service.ts
+│   └── sns.provider.ts // For external API/crawling logic
+├── mail
+│   ├── mail.controller.ts
+│   ├── mail.service.ts
+│   └── mail.provider.ts // For SendGrid integration
+├── common
+│   ├── dtos
+│   │   └── ApplicantDto.ts
+│   ├── middleware
+│   │   └── authMiddleware.ts
+│   └── utils
+│       └── pagination.ts
+├── config
+│   └── index.ts
+├── jobs
+│   ├── sheetSyncJob.ts
+│   └── mailDispatchJob.ts
+├── prisma
+│   └── schema.prisma
+└── app.ts // Entry point
+```
+
+```
+// MUST NOT: Monolithic or flat structure
+/src
+├── controllers
+│   ├── authController.ts
+│   └── dataController.ts
+├── services
+│   ├── authService.ts
+│   └── dataService.ts
+├── models
+│   ├── User.ts
+│   └── Applicant.ts
+├── routes.ts
+└── server.ts
+```
+
+#### Import/Dependency Management
+
+*   **MUST:** Use absolute imports configured via `tsconfig.json` paths.
+*   **MUST:** Order imports: Node.js built-ins, external libraries, internal modules.
+*   **MUST:** Inject dependencies (e.g., services into controllers, repositories into services) rather than direct instantiation for testability.
+
+```typescript
+// MUST: Absolute imports and dependency injection
+import { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
+
+import { AuthService } from '@/auth/auth.service';
+import { UserLoginDto } from '@/common/dtos/UserLoginDto';
+import { AppError } from '@/common/errors/AppError';
+
+export class AuthController {
+  constructor(private authService: AuthService) {} // Dependency injection
+
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, password } = req.body as UserLoginDto;
+      const token = await this.authService.authenticate(email, password);
+      res.json({ token });
+    } catch (error) {
+      next(error); // Pass to error handling middleware
+    }
+  }
+}
+```
+
+#### Error Handling Patterns
+
+*   **MUST:** Centralize error handling using Express middleware.
+*   **MUST:** Define custom error classes for specific application errors (e.g., `NotFoundError`, `ValidationError`).
+*   **MUST:** Return consistent JSON error responses to the client.
+*   **MUST:** Log all unhandled exceptions and critical errors.
+
+```typescript
+// MUST: Custom error class
+class AppError extends Error {
+  statusCode: number;
+  isOperational: boolean;
+
+  constructor(message: string, statusCode: number = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true; // Mark as expected error
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+// MUST: Centralized error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      status: 'error',
+      message: err.message,
+    });
+  }
+
+  console.error('UNHANDLED ERROR:', err); // Log unexpected errors
+  return res.status(500).json({
+    status: 'error',
+    message: 'Something went wrong!',
+  });
 });
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      // 서버 응답 오류 (HTTP 상태 코드 2xx 외)
-      console.error('API 응답 오류:', error.response.status, error.response.data);
-      // 사용자에게 보여줄 메시지 처리 (예: 토스트 메시지)
-      // toast.error(`오류: ${error.response.data.detail || '알 수 없는 오류'}`);
-    } else if (error.request) {
-      // 요청이 전송되었으나 응답을 받지 못함 (네트워크 오류 등)
-      console.error('네트워크 오류:', error.request);
-      // toast.error('네트워크 연결을 확인해주세요.');
-    } else {
-      // 요청 설정 중 오류 발생
-      console.error('요청 설정 오류:', error.message);
-      // toast.error('요청 처리 중 오류가 발생했습니다.');
-    }
-    return Promise.reject(error);
+// MUST NOT: Catching and sending different error responses everywhere
+// In a controller:
+// try { ... } catch (error) { res.status(400).json({ message: error.message }); }
+// This leads to inconsistent error responses.
+```
+
+## 4. Code Style Rules
+
+### MUST Follow:
+
+*   **Consistent Naming Conventions:**
+    *   **Rationale:** Improves readability and predictability.
+    *   **Rule:**
+        *   Variables and functions: `camelCase` (e.g., `applicantCount`, `processSheetData`).
+        *   Classes and types: `PascalCase` (e.g., `ApplicantService`, `UserDto`).
+        *   Constants: `SCREAMING_SNAKE_CASE` (e.g., `MAX_RETRIES`, `DEFAULT_TIMEOUT`).
+        *   Files: `kebab-case` for directories and `kebab-case.ts` for files (e.g., `sns-validation.service.ts`).
+*   **Strict Type Usage (TypeScript):**
+    *   **Rationale:** Enhances code reliability, enables better tooling, and reduces runtime errors.
+    *   **Rule:** Explicitly define types for function parameters, return values, and complex variables. Avoid `any` unless absolutely necessary (e.g., during rapid prototyping or for highly dynamic data, with a comment explaining the rationale).
+*   **Meaningful Variable and Function Names:**
+    *   **Rationale:** Self-documenting code reduces the need for extensive comments.
+    *   **Rule:** Names MUST clearly indicate their purpose or the data they hold.
+    *   ```typescript
+        // MUST: Meaningful names
+        const selectedApplicants: Applicant[] = [];
+        function validateSnsInfluence(profileUrl: string): Promise<boolean> { /* ... */ }
+        ```
+    *   ```typescript
+        // MUST NOT: Ambiguous names
+        const arr = []; // What does 'arr' hold?
+        function process(data: any) { /* ... */ } // What is being processed?
+        ```
+*   **Concise Functions and Methods:**
+    *   **Rationale:** Improves readability, testability, and reduces complexity.
+    *   **Rule:** Functions/methods MUST ideally do one thing and do it well. Keep them short (e.g., under 50 lines of code, excluding comments/empty lines).
+*   **Use `async/await` for Asynchronous Operations:**
+    *   **Rationale:** Simplifies asynchronous code, making it more readable and easier to debug than traditional Promise chains.
+    *   **Rule:** Always use `async/await` for Promise-based operations.
+    *   ```typescript
+        // MUST: Use async/await
+        async function fetchUserData(userId: string) {
+          try {
+            const user = await userRepository.findById(userId);
+            return user;
+          } catch (error) {
+            console.error('Error fetching user:', error);
+            throw new AppError('User not found', 404);
+          }
+        }
+        ```
+    *   ```typescript
+        // MUST NOT: Chained .then/.catch where async/await is clearer
+        function fetchUserData(userId: string) {
+          return userRepository.findById(userId)
+            .then(user => user)
+            .catch(error => {
+              console.error('Error fetching user:', error);
+              throw new AppError('User not found', 404);
+            });
+        }
+        ```
+*   **Consistent Code Formatting:**
+    *   **Rationale:** Maintains a uniform appearance across the codebase, reducing cognitive load.
+    *   **Rule:** Use Prettier and ESLint with a shared configuration. Configure IDEs to format on save.
+        *   Indentation: 2 spaces.
+        *   Quotes: Single quotes (`'`).
+        *   Semicolons: Always use.
+        *   Trailing commas: `es5`.
+
+### MUST NOT Do:
+
+*   **Making Huge, Multi-Responsibility Modules in a Single File:**
+    *   **Rationale:** Violates the Single Responsibility Principle, leading to tightly coupled, hard-to-maintain, and untestable code.
+    *   **Avoid:** A single file containing multiple unrelated controllers, services, and repository logic.
+    *   ```typescript
+        // MUST NOT: Monolithic file
+        // user.ts
+        // Contains User model, User CRUD service, User authentication logic, and User API routes.
+        class UserService { /* ... */ }
+        class UserController { /* ... */ }
+        function authenticateUser() { /* ... */ }
+        // ... and more
+        ```
+*   **Define Complex State Management Patterns Arbitrarily:**
+    *   **Rationale:** Introduces unnecessary complexity and boilerplate, especially for a project of this scale.
+    *   **Avoid:** Implementing custom, overly abstract state management solutions (e.g., a bespoke Redux-like store) when simpler solutions (React Context, Zustand/Jotai for local/global state) suffice.
+*   **Common Mistakes in the Specific Tech Stack:**
+    *   **Backend (Node.js/Express):**
+        *   **MUST NOT:** Block the event loop with synchronous I/O operations or CPU-intensive tasks. Use asynchronous alternatives.
+        *   **MUST NOT:** Directly expose database models or ORM instances to controllers. Always use a service layer.
+        *   **MUST NOT:** Hardcode sensitive information (API keys, secrets). Use environment variables.
+    *   **Frontend (Next.js/React):**
+        *   **MUST NOT:** Mutate state directly. Always use state setter functions or immutability helpers.
+        *   **MUST NOT:** Forget `key` props when rendering lists of components.
+        *   **MUST NOT:** Perform heavy computations directly in render functions; use `useMemo` or `useCallback` when necessary.
+    *   **Prisma:**
+        *   **MUST NOT:** Directly access `PrismaClient` instances in controllers or frontend code. Encapsulate database operations within repository classes.
+        *   **MUST NOT:** Neglect proper error handling for database operations.
+
+## 5. Architecture Patterns
+
+### Component/Module Structure Guidelines
+
+*   **Layered Architecture (Backend):**
+    *   **Presentation Layer (Controllers):** Handles HTTP requests, input validation, and delegates to the service layer. MUST NOT contain business logic.
+    *   **Service Layer (Services):** Contains core business logic, orchestrates operations across multiple repositories, and applies domain rules.
+    *   **Data Access Layer (Repositories):** Abstracts database interactions. Responsible for CRUD operations on a single entity or aggregate. MUST NOT contain business logic.
+    *   **Infrastructure Layer (Providers):** Handles external integrations (e.g., Google Sheets API, SendGrid API, SNS crawlers).
+
+```typescript
+// MUST: Clear separation of concerns (Backend)
+// In auth.controller.ts
+class AuthController {
+  constructor(private authService: AuthService) {} // Dependency injection
+  async login(req: Request, res: Response) { /* ... */ } // Delegates to service
+}
+
+// In auth.service.ts
+class AuthService {
+  constructor(private authRepository: AuthRepository) {} // Dependency injection
+  async authenticate(email: string, passwordHash: string) {
+    const user = await this.authRepository.findByEmail(email); // Uses repository
+    // ... business logic ...
   }
-);
-
-export default api;
-```
-
-## 4. 코드 스타일 규칙
-
-### 4.1. MUST 따르기
-
-*   **명명 규칙**:
-    *   **변수/함수**: `camelCase` (예: `userName`, `getUserData`)
-    *   **클래스/컴포넌트**: `PascalCase` (예: `AuthService`, `UserProfileCard`)
-    *   **상수**: `UPPER_SNAKE_CASE` (예: `MAX_RETRIES`, `API_KEY`)
-    *   **파일**: `snake_case` (Python), `kebab-case` 또는 `PascalCase` (Next.js 컴포넌트)
-    *   **Rationale**: 일관된 명명 규칙은 코드의 가독성을 높이고, 개발자가 변수, 함수, 클래스 등의 종류를 쉽게 파악할 수 있게 합니다.
-
-*   **들여쓰기**:
-    *   **Python**: 4칸 공백
-    *   **JavaScript/TypeScript**: 2칸 공백
-    *   **Rationale**: 일관된 들여쓰기는 코드 블록의 구조를 명확히 하고 가독성을 향상시킵니다.
-
-*   **주석**:
-    *   복잡한 로직, 비즈니스 규칙, 비직관적인 코드에만 주석을 추가합니다.
-    *   `TODO`, `FIXME` 등 특별한 지시어는 명확하게 사용합니다.
-    *   **Rationale**: 과도한 주석은 오히려 코드를 지저분하게 만들 수 있습니다. 코드가 스스로 설명하도록 작성하되, 필요한 경우에만 주석을 추가합니다.
-
-*   **함수/메서드 길이**:
-    *   하나의 함수/메서드는 하나의 책임만 가지도록 작성하며, 가급적 50줄을 넘지 않도록 합니다.
-    *   **Rationale**: 짧고 응집도 높은 함수는 테스트, 이해, 재사용이 용이합니다.
-
-*   **타입 명시 (TypeScript)**:
-    *   함수 매개변수, 반환 값, 변수 등에 명확하게 타입을 명시합니다.
-    *   **Rationale**: TypeScript의 강력한 타입 시스템을 활용하여 개발 단계에서 오류를 방지하고 코드의 안정성을 높입니다.
-
-```typescript
-// MUST: 타입 명시 예시
-interface User {
-  id: number;
-  name: string;
-  email: string;
 }
 
-function getUserById(id: number): User | undefined {
-  // ... 로직
-  return { id: 1, name: '홍길동', email: 'hong@example.com' };
-}
-
-const user: User | undefined = getUserById(1);
-```
-
-### 4.2. MUST NOT 하기
-
-*   **매직 넘버/문자열**: 코드 내에 의미를 알 수 없는 숫자나 문자열 리터럴을 직접 사용하지 않습니다. 상수로 정의하여 사용합니다.
-    *   **Rationale**: 매직 넘버는 코드의 의미를 모호하게 만들고, 변경 시 오류를 유발할 수 있습니다.
-
-```python
-# MUST NOT: 매직 넘버
-# if status == 200:
-
-# MUST: 상수로 정의
-HTTP_STATUS_OK = 200
-# if status == HTTP_STATUS_OK:
-```
-
-*   **과도한 중첩**: `if-else` 또는 `for` 루프의 중첩 레벨을 3단계 이상으로 깊게 만들지 않습니다. 함수 분리 등을 통해 복잡도를 줄입니다.
-    *   **Rationale**: 깊은 중첩은 코드의 가독성을 해치고, 이해하기 어렵게 만듭니다.
-
-*   **전역 변수 남용**: 꼭 필요한 경우가 아니라면 전역 변수 사용을 지양합니다.
-    *   **Rationale**: 전역 변수는 예측 불가능한 부작용을 일으키고, 코드의 모듈성을 저해합니다.
-
-*   **단일 파일에 다중 책임**: 하나의 파일에 여러 비즈니스 도메인 또는 너무 많은 기능을 포함하지 않습니다. (예: 인증, 콘텐츠 생성, 사용자 관리가 한 파일에)
-    *   **Rationale**: 파일의 크기가 커지고 책임이 많아질수록 유지보수가 어려워지고, 코드 변경 시 사이드 이펙트 발생 가능성이 높아집니다.
-
-*   **복잡한 상태 관리 패턴**: MVP 단계에서는 React Context API 또는 간단한 전역 상태 관리 라이브러리(예: Zustand)를 사용하고, Redux와 같은 복잡한 패턴은 지양합니다.
-    *   **Rationale**: 초기 단계에서 과도하게 복잡한 상태 관리 패턴은 개발 생산성을 저해하고 학습 곡선을 높입니다.
-
-## 5. 아키텍처 패턴
-
-### 5.1. 컴포넌트/모듈 구조 가이드라인
-
-*   **책임 분리 (Separation of Concerns)**: 각 컴포넌트/모듈은 명확하고 단일한 책임을 가져야 합니다.
-    *   **백엔드**: `router`는 요청 라우팅, `service`는 비즈니스 로직, `models`는 데이터 모델 정의, `schemas`는 데이터 유효성 검사 및 직렬화/역직렬화에 집중합니다.
-    *   **프론트엔드**: `pages`는 라우팅 및 데이터 페칭, `components`는 UI 렌더링, `hooks`는 재사용 가능한 로직 캡슐화에 집중합니다.
-*   **재사용성**: 공통적으로 사용되는 유틸리티 함수, UI 컴포넌트, 타입 정의 등은 별도의 모듈로 분리하여 재사용성을 높입니다.
-*   **응집도 (Cohesion)**: 관련 있는 코드(데이터, 함수)는 하나의 모듈 내에 함께 위치하도록 합니다.
-*   **결합도 (Coupling)**: 모듈 간의 의존성은 최소화하고, 인터페이스를 통해 느슨하게 결합되도록 설계합니다.
-
-### 5.2. 데이터 흐름 패턴
-
-*   **단방향 데이터 흐름 (프론트엔드)**: React의 단방향 데이터 흐름 원칙을 따릅니다. 부모 컴포넌트에서 자식 컴포넌트로 Props를 통해 데이터를 전달합니다.
-*   **API 기반 통신**: 프론트엔드와 백엔드는 RESTful API를 통해 데이터를 주고받습니다.
-*   **데이터베이스 접근 계층**: 백엔드에서 데이터베이스 접근은 SQLAlchemy ORM을 통해 이루어지며, 직접적인 SQL 쿼리 사용은 지양합니다. `service` 계층은 `db` 계층을 통해 데이터에 접근합니다.
-
-### 5.3. 상태 관리 컨벤션 (프론트엔드)
-
-*   **로컬 상태**: 컴포넌트 내부에서만 필요한 상태는 `useState` 훅을 사용합니다.
-*   **전역 상태**: 여러 컴포넌트에서 공유되어야 하는 상태(예: 사용자 인증 정보, 테마 설정)는 React Context API 또는 Zustand와 같은 경량 상태 관리 라이브러리를 사용합니다.
-*   **서버 상태**: 서버에서 가져오는 데이터(예: 콘텐츠 목록, 사용자 프로필)는 React Query 또는 SWR과 같은 데이터 페칭 라이브러리를 사용하여 캐싱, 재검증, 동기화 등을 효율적으로 관리합니다.
-
-```typescript
-// MUST: React Query를 사용한 서버 상태 관리 예시 (hooks/useContentGenerator.ts)
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api/axios';
-import { ContentHistory } from '@/types';
-
-const fetchContentHistory = async (): Promise<ContentHistory[]> => {
-  const response = await api.get('/contents/history');
-  return response.data;
-};
-
-export const useContentHistory = () => {
-  return useQuery<ContentHistory[], Error>({
-    queryKey: ['contentHistory'],
-    queryFn: fetchContentHistory,
-    staleTime: 5 * 60 * 1000, // 5분 동안 fresh 상태 유지
-  });
-};
-```
-
-### 5.4. API 디자인 표준 (백엔드)
-
-*   **RESTful 원칙**: 자원(Resource) 중심의 RESTful API 디자인 원칙을 따릅니다.
-    *   명사형 URL 사용 (예: `/users`, `/contents`)
-    *   HTTP 메서드(GET, POST, PUT, DELETE)를 통해 CRUD 작업 표현
-    *   상태 없는(Stateless) 통신
-*   **버전 관리**: API 버전 관리는 URL 경로를 통해 명시적으로 수행합니다. (예: `/v1/users`)
-*   **응답 형식**: 모든 API 응답은 JSON 형식을 따르며, 일관된 구조를 가집니다.
-    *   성공 응답: 데이터 객체 또는 배열
-    *   오류 응답: `code`, `message`, `details` 등을 포함하는 객체
-
-```json
-// MUST: 성공 응답 예시
-{
-  "id": 123,
-  "title": "SEO 최적화된 블로그 글 제목",
-  "content": "..."
-}
-
-// MUST: 오류 응답 예시
-{
-  "detail": "인증에 실패했습니다.",
-  "code": "AUTH_FAILED",
-  "status_code": 401
+// In auth.repository.ts
+class AuthRepository {
+  constructor(private prisma: PrismaClient) {}
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email } }); // Direct DB interaction
+  }
 }
 ```
 
-*   **인증 및 권한 부여**: OAuth 2.0 및 JWT를 사용하여 사용자 인증 및 권한 부여를 처리합니다.
-*   **페이징 및 필터링**: 목록 조회 API는 페이징(offset/limit 또는 page/size) 및 필터링(쿼리 파라미터) 기능을 제공합니다.
-*   **입력 유효성 검사**: FastAPI의 Pydantic 모델을 사용하여 모든 API 요청의 입력 데이터를 엄격하게 유효성 검사합니다.
+### Data Flow Patterns
+
+*   **Request-Response Cycle:**
+    *   **MUST:** Frontend sends RESTful JSON requests to the Backend API.
+    *   **MUST:** Backend processes requests, interacts with DB/services, and sends JSON responses.
+*   **Asynchronous Job Processing:**
+    *   **MUST:** Use Bull (on Redis) for background tasks (e.g., Google Sheet synchronization, SNS validation, email dispatch).
+    *   **MUST:** Controllers MUST enqueue jobs and return immediate responses to the client, rather than waiting for long-running tasks to complete.
+    *   ```typescript
+        // MUST: Enqueue job for background processing
+        // In sheet.controller.ts
+        async function triggerSheetSync(req: Request, res: Response) {
+          const { sheetId } = req.body;
+          await sheetSyncQueue.add('sync-sheet', { sheetId }); // Add job to queue
+          res.status(202).json({ message: 'Sheet synchronization initiated.' }); // Respond immediately
+        }
+        ```
+    *   ```typescript
+        // MUST NOT: Blocking operation
+        // In sheet.controller.ts
+        async function triggerSheetSync(req: Request, res: Response) {
+          const { sheetId } = req.body;
+          await sheetService.syncSheet(sheetId); // Direct call, blocks response
+          res.status(200).json({ message: 'Sheet synchronization completed.' });
+        }
+        ```
+
+### State Management Conventions (Frontend)
+
+*   **MUST:** Use React's `useState` and `useReducer` for local component state.
+*   **MUST:** Use React Context API for global state that is shared across many components but doesn't change frequently (e.g., authentication status, user preferences).
+*   **MUST:** For complex, frequently updated global state, consider a lightweight library like Zustand or Jotai. Avoid Redux unless project complexity explicitly demands it.
+
+### API Design Standards (Backend)
+
+*   **RESTful Principles:**
+    *   **MUST:** Use meaningful, plural resource names in URLs (e.g., `/api/applicants`, `/api/brands`).
+    *   **MUST:** Use standard HTTP methods (GET, POST, PUT, DELETE) for corresponding CRUD operations.
+    *   **MUST:** Use appropriate HTTP status codes (e.g., 200 OK, 201 Created, 202 Accepted, 204 No Content, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error).
+*   **Data Transfer Objects (DTOs):**
+    *   **MUST:** Define DTOs for request bodies and response payloads to ensure clear data contracts and validation.
+    *   ```typescript
+        // MUST: Use DTOs for request validation and clear contracts
+        // In common/dtos/CreateApplicantDto.ts
+        export class CreateApplicantDto {
+          @IsString()
+          @IsNotEmpty()
+          name: string;
+
+          @IsUrl()
+          snsLink: string;
+
+          @IsEmail()
+          email: string;
+        }
+
+        // In applicant.controller.ts
+        async createApplicant(req: Request, res: Response) {
+          const applicantData: CreateApplicantDto = req.body;
+          // Validate applicantData using a validation library (e.g., class-validator)
+          // ...
+        }
+        ```
+*   **Versioning:**
+    *   **MUST:** Implement API versioning (e.g., `/api/v1/applicants`) to allow for backward compatibility.
+*   **Authentication and Authorization:**
+    *   **MUST:** Use JWT for token-based authentication.
+    *   **MUST:** Implement middleware for route protection and role-based access control.

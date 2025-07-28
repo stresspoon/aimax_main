@@ -63,12 +63,13 @@ export default function SheetConnector({ onSheetConnected, className = '' }: She
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('시트 연동 오류:', error);
       
-      if (error.response?.data?.error) {
-        setError(error.response.data.error);
-      } else if (error.code === 'ECONNREFUSED') {
+      const axiosError = error as { response?: { data?: { error?: string } }; code?: string };
+      if (axiosError.response?.data?.error) {
+        setError(axiosError.response.data.error);
+      } else if (axiosError.code === 'ECONNREFUSED') {
         setError('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
       } else {
         setError('시트 연동 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -193,8 +194,8 @@ export default function SheetConnector({ onSheetConnected, className = '' }: She
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <h4 className="text-sm font-medium text-text mb-2">연동 방법</h4>
         <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
-          <li>구글시트에서 '공유' 버튼을 클릭하세요</li>
-          <li>'링크가 있는 모든 사용자'로 권한을 설정하세요</li>
+          <li>구글시트에서 &apos;공유&apos; 버튼을 클릭하세요</li>
+          <li>&apos;링크가 있는 모든 사용자&apos;로 권한을 설정하세요</li>
           <li>공유 링크를 복사해서 위 입력란에 붙여넣으세요</li>
         </ol>
       </div>

@@ -23,7 +23,10 @@
       "Bash(cp:*)",
       "Bash(npx @vooster/cli@latest rules:init:*)",
       "Bash(npx @vooster/cli@latest task:get:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "WebFetch(domain:aimax-main-three.vercel.app)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api:*)"
     ],
     "deny": []
   }

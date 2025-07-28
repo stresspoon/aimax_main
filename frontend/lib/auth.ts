@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
       }
       // Google access_token을 session에 포함
       if (token.accessToken) {
-        (session as any).accessToken = token.accessToken;
+        (session as { accessToken?: string }).accessToken = token.accessToken as string;
       }
       return session;
     },

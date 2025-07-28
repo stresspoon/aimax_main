@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // TODO: NextAuth에서 access_token 가져오기 (현재는 임시 구현)
     // 실제로는 session에서 access_token을 가져와야 함
-    const accessToken = (session as any).accessToken;
+    const accessToken = (session as { accessToken?: string }).accessToken;
     
     if (!accessToken) {
       return NextResponse.json(
@@ -83,17 +83,18 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    } catch (sheetsError: any) {
+    } catch (sheetsError: unknown) {
       console.error('Google Sheets API 오류:', sheetsError);
+      const error = sheetsError as { code?: number };
 
-      if (sheetsError.code === 403) {
+      if (error.code === 403) {
         return NextResponse.json(
           { error: '구글시트에 접근할 권한이 없습니다. 시트 공유 설정을 확인해주세요.' },
           { status: 403 }
         );
       }
 
-      if (sheetsError.code === 404) {
+      if (error.code === 404) {
         return NextResponse.json(
           { error: '구글시트를 찾을 수 없습니다. URL을 다시 확인해주세요.' },
           { status: 404 }
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 인증 확인
     const session = await getServerSession(authOptions);

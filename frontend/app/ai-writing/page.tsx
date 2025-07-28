@@ -150,6 +150,11 @@ export default function AIWriting() {
   // 생성된 콘텐츠 상태 확장
   const [contentOutline, setContentOutline] = useState<string[]>([]);
   const [metaDescription, setMetaDescription] = useState('');
+  const [seoMetrics, setSeoMetrics] = useState({ 
+    seo_score: 0, 
+    keyword_density: 0, 
+    readability_score: 0 
+  });
 
   // Step 4: Generate content based on guidelines
   const generateContent = async () => {

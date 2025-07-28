@@ -22,18 +22,15 @@ interface Step3Data {
 }
 
 interface GeneratedContent {
-  sections: {
-    introduction: string;
-    body: string[];
-    conclusion: string;
-  };
-  totalCharCount: number;
+  title: string;
+  content: string;
+  wordCount: number;
 }
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
 // API 설정
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function AIWriting() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -51,8 +48,9 @@ export default function AIWriting() {
     subKeywords: ['', '', '']
   });
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent>({
-    sections: { introduction: '', body: [], conclusion: '' },
-    totalCharCount: 0
+    title: '',
+    content: '',
+    wordCount: 0
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -70,8 +68,9 @@ export default function AIWriting() {
     setApiError('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate-title`, {
-        topic: step1Data.topic
+      const response = await axios.post('/api/gemini/generate-title', {
+        topic: step1Data.topic,
+        contentType: step1Data.contentType
       });
 
       const { title } = response.data;
@@ -117,14 +116,16 @@ export default function AIWriting() {
     setApiError('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/recommend-keywords`, {
-        topic: step1Data.topic
+      const response = await axios.post('/api/gemini/generate-keywords', {
+        topic: step1Data.topic,
+        title: step2Data.title,
+        contentType: step1Data.contentType
       });
 
-      const { primary_keyword, sub_keywords } = response.data;
+      const { primaryKeyword, subKeywords } = response.data;
       setStep3Data({
-        primaryKeyword: primary_keyword,
-        subKeywords: sub_keywords
+        primaryKeyword: primaryKeyword,
+        subKeywords: subKeywords
       });
     } catch (error: unknown) {
       console.error('키워드 추천 오류:', error);
@@ -166,23 +167,22 @@ export default function AIWriting() {
     setApiError('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate-content`, {
+      const response = await axios.post('/api/gemini/generate-content', {
         topic: step1Data.topic,
         title: step2Data.editedTitle,
-        content_type: step2Data.contentType,
-        primary_keyword: step3Data.primaryKeyword,
-        sub_keywords: step3Data.subKeywords.filter(k => k.trim())
+        contentType: step1Data.contentType,
+        keywords: [step3Data.primaryKeyword, ...step3Data.subKeywords.filter(k => k.trim())]
       });
 
-      const { sections, seo_metrics, outline, meta_description, total_char_count } = response.data;
+      const { title, content, summary, tags } = response.data;
       
       setGeneratedContent({
-        sections: sections,
-        totalCharCount: total_char_count
+        title: title,
+        content: content,
+        wordCount: content.length
       });
-      setSeoMetrics(seo_metrics);
-      setContentOutline(outline);
-      setMetaDescription(meta_description);
+      setMetaDescription(summary);
+      setContentOutline(tags);
       setCurrentStep(4);
     } catch (error: unknown) {
       console.error('콘텐츠 생성 오류:', error);
@@ -199,35 +199,9 @@ export default function AIWriting() {
     }
   };
 
-  // Content editing functions
-  const updateSection = (section: 'introduction' | 'conclusion', value: string) => {
-    setGeneratedContent(prev => {
-      const newSections = { ...prev.sections, [section]: value };
-      const fullContent = newSections.introduction + '\n\n' + newSections.body.join('\n\n') + '\n\n' + newSections.conclusion;
-      return {
-        sections: newSections,
-        totalCharCount: fullContent.length
-      };
-    });
-  };
-
-  const updateBodySection = (index: number, value: string) => {
-    setGeneratedContent(prev => {
-      const newBody = [...prev.sections.body];
-      newBody[index] = value;
-      const newSections = { ...prev.sections, body: newBody };
-      const fullContent = newSections.introduction + '\n\n' + newSections.body.join('\n\n') + '\n\n' + newSections.conclusion;
-      return {
-        sections: newSections,
-        totalCharCount: fullContent.length
-      };
-    });
-  };
 
   const copyToClipboard = async () => {
-    const fullContent = generatedContent.sections.introduction + '\n\n' + 
-                       generatedContent.sections.body.join('\n\n') + '\n\n' + 
-                       generatedContent.sections.conclusion;
+    const fullContent = generatedContent.content;
     
     try {
       await navigator.clipboard.writeText(fullContent);
@@ -558,7 +532,7 @@ export default function AIWriting() {
                 </h2>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-700">
-                    총 <span className="font-semibold text-text">{generatedContent.totalCharCount.toLocaleString()}</span>자
+                    총 <span className="font-semibold text-text">{generatedContent.wordCount.toLocaleString()}</span>자
                   </span>
                   <button
                     onClick={copyToClipboard}
@@ -618,37 +592,16 @@ export default function AIWriting() {
               )}
 
               <div className="space-y-6">
-                {/* Introduction */}
                 <div>
-                  <h3 className="text-lg font-semibold text-text mb-2">도입부</h3>
+                  <h3 className="text-lg font-semibold text-text mb-2">생성된 콘텐츠</h3>
                   <textarea
-                    value={generatedContent.sections.introduction}
-                    onChange={(e) => updateSection('introduction', e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
-                  />
-                </div>
-
-                {/* Body Sections */}
-                {generatedContent.sections.body.map((section, index) => (
-                  <div key={index}>
-                    <h3 className="text-lg font-semibold text-text mb-2">본문 {index + 1}</h3>
-                    <textarea
-                      value={section}
-                      onChange={(e) => updateBodySection(index, e.target.value)}
-                      rows={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
-                    />
-                  </div>
-                ))}
-
-                {/* Conclusion */}
-                <div>
-                  <h3 className="text-lg font-semibold text-text mb-2">결론</h3>
-                  <textarea
-                    value={generatedContent.sections.conclusion}
-                    onChange={(e) => updateSection('conclusion', e.target.value)}
-                    rows={3}
+                    value={generatedContent.content}
+                    onChange={(e) => setGeneratedContent(prev => ({
+                      ...prev,
+                      content: e.target.value,
+                      wordCount: e.target.value.length
+                    }))}
+                    rows={20}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
                   />
                 </div>

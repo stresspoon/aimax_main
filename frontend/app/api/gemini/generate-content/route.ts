@@ -44,10 +44,12 @@ export async function POST(request: NextRequest) {
       반드시 다음 JSON 형식으로만 응답해주세요:
       {
         "title": "SEO 최적화된 제목",
-        "content": "본문 내용 (2000-3000자)",
+        "content": "본문 내용 (정확히 2000-3000자, 공백 포함)",
         "summary": "요약 (150-200자)",
-        "tags": ["태그1", "태그2", "태그3", "태그4", "태그5"]
+        "tags": ["태그1", "태그2", "태그3", "태그4", "태그5", "태그6", "태그7"]
       }
+      
+      중요: content는 반드시 2000-3000자 사이여야 하며, 핵심 키워드를 15-20회 포함해야 합니다.
     `;
 
     const result = await Promise.race([

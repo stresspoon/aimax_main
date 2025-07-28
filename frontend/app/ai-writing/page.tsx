@@ -219,12 +219,18 @@ export default function AIWriting() {
       const readabilityScore = Math.max(0, Math.min(100, 100 - (avgWordsPerSentence * 1.5)));
       
       // SEO 점수 계산 (한글 기준)
-      const contentLengthScore = Math.min(30, (charCount / 2000) * 30); // 2000자 기준
-      const keywordScore = keywordDensity >= 1 && keywordDensity <= 3 ? 30 : 
-                          keywordDensity > 0 && keywordDensity < 1 ? 20 :
-                          keywordDensity > 3 && keywordDensity <= 5 ? 20 : 10;
-      const readabilityScoreValue = readabilityScore * 0.3;
-      const tagsScore = tags && tags.length >= 3 ? 10 : tags ? tags.length * 3 : 0;
+      // 2000-3000자 사이일 때 최고점
+      const contentLengthScore = charCount >= 2000 && charCount <= 3000 ? 30 : 
+                                charCount >= 1500 && charCount < 2000 ? 25 :
+                                charCount > 3000 && charCount <= 3500 ? 25 : 20;
+      
+      // 키워드 밀도 2-3%일 때 최고점
+      const keywordScore = keywordDensity >= 2 && keywordDensity <= 3 ? 35 : 
+                          keywordDensity >= 1.5 && keywordDensity < 2 ? 30 :
+                          keywordDensity > 3 && keywordDensity <= 4 ? 30 : 20;
+      
+      const readabilityScoreValue = Math.min(25, readabilityScore * 0.25);
+      const tagsScore = tags && tags.length >= 5 ? 10 : tags && tags.length >= 3 ? 8 : 5;
       
       const seoScore = Math.min(100, Math.max(0, 
         readabilityScoreValue + 

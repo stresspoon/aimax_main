@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import { Applicant, SyncResult, ApplicantSheet } from '@/types/applicant';
+import { InfluenceVerification } from '@/types/influence';
+import InfluenceVerifier from '../influence/InfluenceVerifier';
 
 interface ApplicantManagerProps {
   connectedSheet?: {
@@ -21,6 +23,8 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
+  const [showInfluenceVerifier, setShowInfluenceVerifier] = useState(false);
 
   // 시트 설정 상태
   const [sheetConfig, setSheetConfig] = useState<ApplicantSheet | null>(null);
@@ -330,9 +334,20 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                       </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        상세보기
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedApplicant(applicant);
+                            setShowInfluenceVerifier(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          영향력 검증
+                        </button>
+                        <button className="text-gray-600 hover:text-gray-900">
+                          상세보기
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -367,6 +382,45 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 영향력 검증 모달 */}
+      {showInfluenceVerifier && selectedApplicant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedApplicant.name} - SNS 영향력 검증
+              </h3>
+              <button
+                onClick={() => {
+                  setShowInfluenceVerifier(false);
+                  setSelectedApplicant(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <InfluenceVerifier
+                applicantEmail={selectedApplicant.email}
+                initialUrls={{
+                  instagram: selectedApplicant.instagramHandle 
+                    ? `https://www.instagram.com/${selectedApplicant.instagramHandle.replace('@', '')}`
+                    : undefined
+                }}
+                onVerificationComplete={(result: InfluenceVerification) => {
+                  console.log('검증 완료:', result);
+                  setSuccess(`${selectedApplicant.name}님의 영향력 검증이 완료되었습니다.`);
+                }}
+              />
             </div>
           </div>
         </div>

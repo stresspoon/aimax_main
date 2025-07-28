@@ -181,6 +181,7 @@ export default function AIWriting() {
 
       const { title, content, summary, tags } = response.data;
       
+      // 콘텐츠 설정
       setGeneratedContent({
         title: title,
         content: content,
@@ -188,6 +189,35 @@ export default function AIWriting() {
       });
       setMetaDescription(summary);
       setContentOutline(tags);
+      
+      // SEO 분석 수행
+      const wordCount = content.split(/\s+/).length;
+      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0).length;
+      const avgWordsPerSentence = wordCount / Math.max(sentences, 1);
+      
+      // 키워드 밀도 계산
+      const mainKeyword = step3Data.primaryKeyword.toLowerCase();
+      const contentLower = content.toLowerCase();
+      const keywordMatches = (contentLower.match(new RegExp(mainKeyword, 'g')) || []).length;
+      const keywordDensity = Math.round((keywordMatches / wordCount) * 100 * 100) / 100;
+      
+      // 가독성 점수 (간단한 Flesch Reading Ease 근사치)
+      const readabilityScore = Math.max(0, Math.min(100, 100 - (avgWordsPerSentence * 1.5)));
+      
+      // SEO 점수 계산
+      const seoScore = Math.min(100, Math.max(0, 
+        (readabilityScore * 0.3) + 
+        (keywordDensity >= 1 && keywordDensity <= 3 ? 30 : keywordDensity > 3 ? 20 : 10) + 
+        (wordCount >= 2000 ? 30 : wordCount / 2000 * 30) +
+        (tags.length >= 3 ? 10 : tags.length * 3)
+      ));
+      
+      setSeoMetrics({
+        seo_score: Math.round(seoScore),
+        keyword_density: keywordDensity,
+        readability_score: Math.round(readabilityScore)
+      });
+      
       setCurrentStep(4);
     } catch (error: unknown) {
       console.error('콘텐츠 생성 오류:', error);

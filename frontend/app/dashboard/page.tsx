@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LoginButton } from '../../components/auth/LoginButton';
+import { AuthGuard } from '../../components/auth/AuthGuard';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -38,8 +39,9 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
+    <AuthGuard>
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-6xl mx-auto">
         {/* Home button */}
         <div className="mb-6">
           <Link 
@@ -197,6 +199,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

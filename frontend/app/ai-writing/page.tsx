@@ -106,7 +106,7 @@ export default function AIWriting() {
       setErrors({ title: '제목을 입력해주세요.' });
       return;
     }
-    if (!step2Data.contentType) {
+    if (!step1Data.contentType) {
       setErrors({ contentType: '글의 성격을 선택해주세요.' });
       return;
     }
@@ -123,7 +123,7 @@ export default function AIWriting() {
     try {
       const response = await axios.post('/api/gemini/generate-keywords', {
         topic: step1Data.topic,
-        title: step2Data.title,
+        title: step2Data.editedTitle,
         contentType: step1Data.contentType
       });
 
@@ -373,7 +373,7 @@ export default function AIWriting() {
           {currentStep === 2 && (
             <div className="max-w-2xl mx-auto">
               <h2 className="text-2xl font-semibold text-text mb-6 text-center">
-                생성된 제목을 확인하고 글의 성격을 선택하세요
+                생성된 제목을 확인하고 수정하세요
               </h2>
               
               <div className="space-y-6">
@@ -394,49 +394,6 @@ export default function AIWriting() {
                   <p className="text-gray-700 text-sm mt-1">제목이 마음에 들지 않으면 직접 수정할 수 있습니다.</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-text mb-3">
-                    글의 성격 선택 <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      step2Data.contentType === 'informational' ? 'border-text bg-text/5' : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="contentType"
-                        value="informational"
-                        checked={step2Data.contentType === 'informational'}
-                        onChange={(e) => setStep2Data(prev => ({ ...prev, contentType: e.target.value as 'informational' }))}
-                        className="sr-only"
-                      />
-                      <div className="text-center">
-                        <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
-                        <h3 className="font-semibold text-text mb-1">정보성</h3>
-                        <p className="text-sm text-gray-700">독자에게 유용한 정보와 지식을 제공하는 글</p>
-                      </div>
-                    </label>
-                    
-                    <label className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                      step2Data.contentType === 'sales' ? 'border-text bg-text/5' : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="contentType"
-                        value="sales"
-                        checked={step2Data.contentType === 'sales'}
-                        onChange={(e) => setStep2Data(prev => ({ ...prev, contentType: e.target.value as 'sales' }))}
-                        className="sr-only"
-                      />
-                      <div className="text-center">
-                        <div className="w-8 h-8 bg-text/10 rounded mx-auto mb-2"></div>
-                        <h3 className="font-semibold text-text mb-1">판매성</h3>
-                        <p className="text-sm text-gray-700">제품이나 서비스 판매를 목적으로 하는 글</p>
-                      </div>
-                    </label>
-                  </div>
-                  {errors.contentType && <span className="text-red-500 text-sm mt-1 block">{errors.contentType}</span>}
-                </div>
 
                 <button
                   onClick={proceedToKeywords}

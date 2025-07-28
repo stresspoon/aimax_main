@@ -1,295 +1,247 @@
-# Vercel 배포 "GEMINI_API_KEY is not configured" 오류 완벽 해결 가이드
+# TypeScript 인터페이스 누락 속성 오류 해결 가이드
 
-**핵심 문제**: Vercel 빌드 과정에서 `GEMINI_API_KEY is not configured` 오류가 발생하는 것은 **환경 변수가 Vercel 프로젝트에 설정되지 않았거나**, **빌드 시점에 API 키에 접근하려는 코드**가 있기 때문입니다.
+에러 로그를 분석하면 `app/ai-writing/page.tsx` 파일의 **109번째 줄**에서 `Step2Data` 인터페이스에 `contentType` 속성이 정의되지 않아 발생하는 TypeScript 컴파일 오류입니다.
 
 ## 문제 원인 분석
 
-에러 로그를 보면 "Collecting page data" 단계에서 오류가 발생했습니다[1]. 이는 Next.js가 빌드 시점에 정적 페이지 생성을 위해 API 경로를 실행하려고 시도하면서 환경 변수에 접근했기 때문입니다[2][1].
+**핵심 문제**: 코드에서 `step2Data.contentType`에 접근하려고 하지만, `Step2Data` 인터페이스에 `contentType` 속성이 정의되어 있지 않아 TypeScript가 다음과 같은 오류를 발생시킵니다:
 
 ```
-Error: GEMINI_API_KEY is not configured
-    at (.next/server/app/api/gemini/generate-content/route.js:112:702)
+Type error: Property 'contentType' does not exist on type 'Step2Data'.
 ```
 
-##  1단계: Vercel 프로젝트에 환경 변수 설정
+## 즉시 해결 방법
 
-**Vercel 대시보드에서 환경 변수 추가**:
+### 1단계: Step2Data 인터페이스에 contentType 속성 추가
 
-1. **Vercel 대시보드**에 로그인
-2. 해당 **프로젝트** 선택
-3. **Settings** 탭 클릭
-4. 좌측 메뉴에서 **Environment Variables** 클릭[3]
-5. 새 환경 변수 추가:
-   - **Name**: `GEMINI_API_KEY`
-   - **Value**: 실제 Gemini API 키 입력
-   - **Environments**: Production, Preview, Development 모두 선택[4]
-6. **Save** 클릭
+`Step2Data` 인터페이스가 정의된 파일(보통 `types` 폴더나 같은 파일 내)에서 `contentType` 속성을 추가하세요:
 
-### 2단계: 민감한 환경 변수로 설정
+```typescript
+// types/index.ts 또는 해당 파일
+interface Step2Data {
+  // 기존 속성들...?: string;
+  keywords?: string[];
+  
+  // 누락된 속성 추가
+  contentType?: string; // ✅ 추가
+}
+```
 
-보안을 위해 **Sensitive** 옵션을 활성화하세요[5]:
+### 2단계: 인터페이스 정의 확인 및 수정
 
-1. 환경 변수 추가 시 **Sensitive** 스위치를 **Enabled**로 설정
-2. 이렇게 하면 변수 값이 암호화되어 저장되고 읽기 불가능한 형태로 표시됩니다
+현재 `Step2Data` 인터페이스가 어떻게 정의되어 있는지 확인하고, 누락된 속성들을 모두 추가하세요:
 
-### 3단계: API 키 검증 코드 수정
+```typescript
+interface Step2Data {
+  contentType: string;     // 필수 속성
+  // 또는
+  contentType?: string;    // 선택적 속성
+  
+  // 다른 필요한 속성들도 함께 정의
+  writingStyle?: string;
+  targetAudience?: string;
+  contentLength?: string;
+}
+```
 
-`app/api/gemini/generate-content/route.ts` 파일에서 환경 변수 체크 로직을 개선하세요:
+### 3단계: 사용하는 곳에서 안전한 접근
+
+`app/ai-writing/page.tsx` 파일에서 안전하게 속성에 접근하도록 수정하세요:
 
 ```typescript
 // 기존 문제 코드
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY is not configured'); // ❌ 빌드 시 실행됨
+if (!step2Data.contentType) {  // ❌ 오류 발생
+  setErrors({ contentType: '글의 성격을 선택해주세요.' });
+  return;
 }
 
-// 개선된 코드
-export async function POST(request: Request) {
-  // API 호출 시점에 체크
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+// 수정된 안전한 코드
+if (!step2Data?.contentType) {  // ✅ 옵셔널 체이닝 사용
+  setErrors({ contentType: '글의 성격을 선택해주세요.' });
+  return;
+}
 
-  // Gemini API 호출 로직
-  try {
-    // ... 실제 API 호출 코드
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: 'API call failed' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+// 또는 타입 가드 사용
+if ('contentType' in step2Data && !step2Data.contentType) {  // ✅ 안전한 접근
+  setErrors({ contentType: '글의 성격을 선택해주세요.' });
+  return;
 }
 ```
 
 ## 근본적 해결책
 
-### 1. 빌드 시점 vs 런타임 환경 변수 구분
-
-**빌드 시점에 실행되는 코드 수정**:
+### 완전한 Step2Data 인터페이스 정의
 
 ```typescript
-// ❌ 모듈 최상위에서 환경 변수 체크 - 빌드 시 실행됨
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY is not configured');
+// types/ai-writing.ts
+export interface Step2Data {
+  contentType: string;           // 글의 성격/타입
+  writingStyle?: string;         // 작성 스타일
+  targetAudience?: string;       // 타겟 독자
+  contentLength?: string;        // 글의 길이
+  tone?: string;                 // 어조
+  keywords?: string[];           // 키워드 배열
+  additionalRequirements?: string; // 추가 요구사항
 }
 
-// ✅ 함수 내부에서 체크 - 런타임에만 실행됨
-export async function POST(request: Request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), {
-      status: 500
-    });
-  }
-  // ... 나머지 로직
+// 에러 타입도 함께 정의
+export interface Step2Errors {
+  contentType?: string;
+  writingStyle?: string;
+  targetAudience?: string;
+  // 기타 에러 필드들...
 }
 ```
 
-### 2. 안전한 환경 변수 검증 유틸리티
+### 타입 안전성을 위한 폼 검증 함수
 
 ```typescript
-// utils/env.ts
-export function validateEnvVariables() {
-  const requiredVars = ['GEMINI_API_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+// utils/validation.ts
+export function validateStep2Data(data: Step2Data): Step2Errors {
+  const errors: Step2Errors = {};
   
-  if (missing.length > 0) {
-    console.error('Missing environment variables:', missing);
-    return { isValid: false, missing };
+  if (!data.contentType) {
+    errors.contentType = '글의 성격을 선택해주세요.';
   }
   
-  return { isValid: true, missing: [] };
-}
-
-// API 경로에서 사용
-export async function POST(request: Request) {
-  const envCheck = validateEnvVariables();
-  if (!envCheck.isValid) {
-    return new Response(
-      JSON.stringify({ 
-        error: 'Server configuration error',
-        details: process.env.NODE_ENV === 'development' ? envCheck.missing : undefined
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+  if (!data.writingStyle) {
+    errors.writingStyle = '작성 스타일을 선택해주세요.';
   }
   
-  // ... 실제 로직
+  return errors;
 }
+
+// app/ai-writing/page.tsx에서 사용
+const handleValidation = () => {
+  const validationErrors = validateStep2Data(step2Data);
+  
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+  
+  // 검증 통과시 다음 단계 진행
+  proceedToNextStep();
+};
 ```
 
-### 3. Gemini API 클라이언트 초기화 최적화
+### 기본값이 있는 인터페이스 활용
 
 ```typescript
-// lib/gemini.ts
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-let geminiClient: GoogleGenerativeAI | null = null;
-
-export function getGeminiClient(): GoogleGenerativeAI {
-  if (!geminiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is required');
-    }
-    geminiClient = new GoogleGenerativeAI(apiKey);
-  }
-  return geminiClient;
+// types/ai-writing.ts
+export interface Step2Data {
+  contentType: string;
+  writingStyle: string;
+  targetAudience: string;
 }
 
-// API 경로에서 사용
-export async function POST(request: Request) {
-  try {
-    const client = getGeminiClient();
-    const model = client.getGenerativeModel({ model: 'gemini-2.5-pro' });
-    // ... API 호출
-  } catch (error) {
-    if (error.message.includes('GEMINI_API_KEY')) {
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500 }
-      );
-    }
-    throw error;
+// 기본값 제공 함수
+export function getDefaultStep2Data(): Step2Data {
+  return {
+    contentType: '',
+    writingStyle: 'professional',
+    targetAudience: 'general'
+  };
+}
+
+// 컴포넌트에서 사용
+const [step2Data, setStep2Data] = useState(getDefaultStep2Data());
+```
+
+## 추가 권장사항
+
+### 1. TypeScript 설정 강화
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   }
 }
 ```
 
-## 배포 후 확인사항
+### 2. ESLint 규칙 추가
 
-### 1. 환경 변수 설정 확인
-
-**Vercel CLI를 통한 확인**:
-```bash
-# 프로젝트 환경 변수 확인
-vercel env ls
-
-# 로컬에 환경 변수 다운로드
-vercel env pull .env.local
+```json
+// .eslintrc.json
+{
+  "rules": {
+    "@typescript-eslint/no-unsafe-member-access": "error",
+    "@typescript-eslint/no-unsafe-assignment": "error"
+  }
+}
 ```
 
-### 2. API 경로 테스트
-
-배포 후 다음 URL로 API 경로가 정상 작동하는지 확인:
-```
-https://your-project.vercel.app/api/gemini/generate-content
-```
-
-### 3. 로그 모니터링
-
-**Vercel 함수 로그 확인**:
-1. Vercel 대시보드 → 프로젝트 → **Functions** 탭
-2. 해당 API 경로 클릭하여 실행 로그 확인
-
-## 예방 및 모범 사례
-
-### 1. 환경 변수 타입 안전성
+### 3. 런타임 타입 검증
 
 ```typescript
-// types/env.d.ts
-declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      GEMINI_API_KEY: string;
-      GOOGLE_CLIENT_ID: string;
-      GOOGLE_CLIENT_SECRET: string;
-      NEXTAUTH_SECRET: string;
-      NEXTAUTH_URL: string;
-    }
-  }
+// utils/type-guards.ts
+export function isValidStep2Data(data: any): data is Step2Data {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    typeof data.contentType === 'string' &&
+    data.contentType.length > 0
+  );
 }
 
-export {};
-```
-
-### 2. 개발 환경 설정
-
-**.env.example 파일 생성**:
-```env
-# API Keys
-GEMINI_API_KEY=your_gemini_api_key_here
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# NextAuth
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-```
-
-### 3. CI/CD 파이프라인 개선
-
-**GitHub Actions에서 환경 변수 설정**:
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Vercel
-on: [push]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Vercel CLI
-        run: npm install --global vercel
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Deploy Project Artifacts
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+// 사용 예시
+if (!isValidStep2Data(step2Data)) {
+  setErrors({ contentType: '유효하지 않은 데이터입니다.' });
+  return;
+}
 ```
 
 ## 문제 해결 체크리스트
 
-- [ ] **Vercel 프로젝트에 GEMINI_API_KEY 환경 변수가 설정**되어 있는지 확인
-- [ ] **Production, Preview, Development 환경** 모두에 변수가 적용되었는지 확인
-- [ ] **Sensitive 옵션**이 활성화되어 보안이 강화되었는지 확인
-- [ ] **API 경로 코드에서 모듈 최상위가 아닌 함수 내부**에서 환경 변수를 체크하는지 확인
-- [ ] **환경 변수 설정 후 재배포**를 진행했는지 확인
-- [ ] **로컬 .env 파일과 Vercel 설정**이 일치하는지 확인
+- [ ] **Step2Data 인터페이스에 contentType 속성이 정의**되어 있는지 확인
+- [ ] **속성이 필수(required)인지 선택적(optional)인지** 결정
+- [ ] **옵셔널 체이닝(?.)을 사용**하여 안전하게 속성에 접근
+- [ ] **타입 정의 파일이 올바르게 import**되었는지 확인
+- [ ] **인터페이스 정의와 실제 사용이 일치**하는지 확인
+- [ ] **IDE에서 자동완성을 통해 사용 가능한 속성들을 확인**
 
-Gemini API 키는 **Google AI Studio**에서 발급받을 수 있으며[6], Vercel에 설정한 후에는 반드시 **재배포**해야 변경사항이 적용됩니다[7]. 이 가이드를 따라 설정하면 "GEMINI_API_KEY is not configured" 오류가 완전히 해결되고, 안전하고 확장 가능한 AI 기반 SaaS 애플리케이션을 배포할 수 있습니다.
+이 가이드를 따라 수정하면 **Vercel 배포 시 발생하는 TypeScript 인터페이스 속성 누락 오류가 완전히 해결**되고, 타입 안전성이 확보된 견고한 AI 글쓰기 애플리케이션을 배포할 수 있습니다[1][2][3].
 
-[1] https://github.com/vercel/next.js/discussions/35534
-[2] https://github.com/vercel/next.js/discussions/50955
-[3] https://www.delasign.com/blog/how-to-add-edit-or-remove-environment-variables-in-vercel/
-[4] https://vercel.com/docs/environment-variables
-[5] https://vercel.com/docs/environment-variables/sensitive-environment-variables
-[6] https://ai.google.dev/gemini-api/docs/api-key
-[7] https://vercel.com/guides/how-to-add-vercel-environment-variables
-[8] https://vercel.com/docs/environment-variables/system-environment-variables
-[9] https://stackoverflow.com/questions/77900701/my-gemini-api-key-is-not-working-properly
-[10] https://humanwhocodes.com/blog/2019/09/securing-persistent-environment-variables-zeit-now/
-[11] https://ai.google.dev/gemini-api/docs/troubleshooting
-[12] https://www.cnblogs.com/xgqfrms/p/17121243.html
-[13] https://www.googlecloudcommunity.com/gc/AI-ML/Google-Gemini-in-node-js-next-js-project/td-p/722040
-[14] https://vercel.com/blog/environment-variables-ui
-[15] https://github.com/vercel/ai/issues/860
-[16] https://ai.google.dev/gemini-api/docs/structured-output
-[17] https://vercel.com/docs/deploy-button/environment-variables
-[18] https://firebase.google.com/codelabs/firebase-nextjs
-[19] https://discuss.ai.google.dev/t/how-do-i-set-api-key-environment-for-the-repo/33720
-[20] https://velog.io/@zifnffk321/next-js-%EB%B9%8C%EB%93%9C-%EC%97%90%EB%9F%AC
-[21] https://velog.io/@yena1025/vercel%EB%A1%9C-%EB%B0%B0%ED%8F%AC%ED%95%9C-%EC%95%B1%EC%97%90-.env%ED%99%98%EA%B2%BD-%EB%B3%80%EC%88%98-%EC%A0%81%EC%9A%A9%ED%95%98%EA%B8%B0
-[22] https://github.com/vercel/next.js/issues/44998
-[23] https://learn.microsoft.com/en-us/answers/questions/2235931/deploying-environment-variables-for-nextjs-and-nod
-[24] https://www.reddit.com/r/nextjs/comments/1dqunl5/cant_successfully_create_a_production_build/
-[25] https://qiita.com/bisketoriba/items/c5c6873e1e2cedbaae95
-[26] https://hackmd.io/@sam30606/HyJo0dloC
-[27] https://gist.github.com/patrickloeber/9cd1b134adf6516424224b4b51344077
-[28] https://stackoverflow.com/questions/76397896/unable-to-access-environment-variables-in-next-js-api-routes
-[29] https://v0.dev/chat/gemini-study-website-l766e3ZTTQv
-[30] https://community.fly.io/t/nextjs-build-vs-runtime-environment-variables/13760
-[31] https://stackoverflow.com/questions/70850634/nextjs-collecting-page-data-fails-with-status-code-500/70877832
-[32] https://stackoverflow.com/questions/66845336/nextjs-environment-variable-undefined-in-api-route
-[33] https://stackoverflow.com/questions/79415284/next-js-building-stuck-in-collecting-page-data
-[34] https://vercel.com/docs/deployments/troubleshoot-a-build
-[35] https://nextjs.org/docs/pages/guides/environment-variables
-[36] https://stackoverflow.com/questions/77551616/why-does-next-js-need-runtime-environment-variables-at-build
-[37] https://vercel.com/docs/errors/error-list
+[1] https://github.com/strapi/strapi/issues/18784
+[2] https://www.youtube.com/watch?v=wbEkkcIKLn8
+[3] https://www.totaltypescript.com/concepts/property-does-not-exist-on-type
+[4] https://www.youtube.com/watch?v=G5sYXeQDnqE
+[5] https://www.reddit.com/r/typescript/comments/1hztg9v/method_does_not_exist_in_type_headers/
+[6] https://dev.to/generatecodedev/how-to-fix-type-error-in-nextjs-with-typescript-3chc
+[7] https://devpress.csdn.net/react/6306f8be7e668234661a03d1.html
+[8] https://stackoverflow.com/questions/34274487/typescript-property-does-not-exist-on-type
+[9] https://vocal.media/education/resolving-type-script-type-errors-in-next-js-a-comprehensive-guide
+[10] https://blog.csdn.net/YopenLang/article/details/125918918
+[11] https://heeyamsec.tistory.com/41
+[12] https://stackoverflow.com/questions/67194230/typescript-interface-is-giving-typeerror
+[13] https://stackoverflow.com/questions/77589654/trouble-with-typescript-error-related-to-missing-property-on-object
+[14] https://www.youtube.com/watch?v=5J2PCAOFGmM
+[15] https://stackoverflow.com/questions/75138499/how-do-i-resolve-the-typescript-error-thats-being-reported-by-my-next-js-route
+[16] https://github.com/microsoft/TypeScript/issues/48418
+[17] https://www.youtube.com/watch?v=t_5HzaWrj_Q
+[18] https://stackoverflow.com/questions/62801163/type-is-missing-the-following-properties-from-another-type-when-assign-values
+[19] https://www.youtube.com/watch?v=1j9VS_5eGn8
+[20] https://stackoverflow.com/questions/73652226/typescript-doesnt-care-what-i-put-in-my-interface-and-doesnt-seems-to-understa
+[21] https://www.typescriptlang.org/docs/handbook/interfaces.html
+[22] https://community.openai.com/t/assistants-messages-has-problem-with-typescript/868353
+[23] https://github.com/microsoft/TypeScript/issues/14537
+[24] https://heeeming.tistory.com/entry/TypeScript-%ED%83%80%EC%9E%85%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EA%B8%B0%EB%B3%B8-%EC%9D%B8%ED%84%B0%ED%8E%98%EC%9D%B4%EC%8A%A4interface
+[25] https://gist.github.com/juhaelee/b80ab497f74e7393b15439c17421d299?permalink_comment_id=2834138
+[26] https://blog.bitsrc.io/handling-form-data-with-typescript-and-formik-fef74f054a3d?gi=ec0c07bd9a36
+[27] https://doit-fwd.tistory.com/28
+[28] https://www.typescriptlang.org/docs/handbook/jsx.html
+[29] https://www.reddit.com/r/reactjs/comments/1dwc2iu/how_does_typescript_work_with_a_formdata/
+[30] https://velog.io/@milkcoke/Typescript-utility-%ED%99%9C%EC%9A%A9%ED%95%98%EA%B8%B0
+[31] https://stackoverflow.com/questions/74761403/unable-to-access-typescript-interface-attribute
+[32] https://javascript.plainenglish.io/finding-the-missing-input-filed-in-formdata-a70563855c5f
+[33] https://www.codecademy.com/learn/learn-typescript/modules/learn-typescript-advanced-object-types/cheatsheet
+[34] https://stackoverflow.com/questions/68341893/react-with-typescript-type-missing-the-following-properties-from-type
+[35] https://dev.to/deciduously/formdata-in-typescript-24cl
+[36] https://betterprogramming.pub/a-comprehensive-guide-to-typescript-interfaces-16c5749fac2b?gi=e0ae2a514e09
+[37] https://github.com/vitejs/vite/issues/2117
+[38] https://dev.to/educative/a-simple-guide-to-typescript-interfaces-declaration-use-cases-5a01
+[39] https://stackoverflow.com/questions/65848179/why-is-an-interface-type-not-found-is-a-typescript-file

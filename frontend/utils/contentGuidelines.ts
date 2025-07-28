@@ -201,7 +201,7 @@ export function getContentGuideline(contentType: string, title: string, primaryK
 - 특허, 인증, 수상, 전문 자격증 등 공신력 제시
 - 핵심 키워드 3-4회 포함
 
-#### 4. 가치 제안 (600-700자) - 스토리텔링
+#### 4. 가치 제안 (500-600자) - 스토리텔링
 **드라마틱한 스토리 전개:**
 - 개발 과정의 극단적 테스트/노력 스토리
 - ${subKeywords[2] || '특별함'} 중심의 차별화된 기술/서비스
@@ -218,7 +218,7 @@ export function getContentGuideline(contentType: string, title: string, primaryK
 - 누적 고객과 대기업/유명 브랜드 실적
 - 핵심 키워드 2-3회 포함
 
-#### 6. 고객 변화/효과 (300-400자)
+#### 6. 고객 변화/효과 (250-300자)
 **"이런 변화가 생깁니다"**
 - 즉각적인 체감 효과 (단기)
 - 장기적 개선 효과와 지속적 혜택

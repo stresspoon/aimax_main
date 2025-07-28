@@ -51,16 +51,31 @@ export class SheetsSync {
             sheetConfig.headerRow + 1 + i // 실제 행 번호
           );
 
-          if (applicant.email) {
-            const upsertResult = await ApplicantStorage.upsertApplicant(applicant);
-            
-            if (upsertResult.isNew) {
-              result.newApplicants++;
-            } else {
-              result.updatedApplicants++;
-            }
-          } else {
+          // 이메일 검증 - 필수 필드이고 올바른 형식이어야 함
+          if (!applicant.email || applicant.email.trim() === '') {
             result.errors.push(`행 ${sheetConfig.headerRow + 1 + i}: 이메일이 없습니다.`);
+            continue;
+          }
+
+          // 기본적인 이메일 형식 검증
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(applicant.email)) {
+            result.errors.push(`행 ${sheetConfig.headerRow + 1 + i}: 올바르지 않은 이메일 형식입니다. (${applicant.email})`);
+            continue;
+          }
+
+          // 이름도 필수로 체크
+          if (!applicant.name || applicant.name.trim() === '') {
+            result.errors.push(`행 ${sheetConfig.headerRow + 1 + i}: 이름이 없습니다.`);
+            continue;
+          }
+
+          const upsertResult = await ApplicantStorage.upsertApplicant(applicant);
+          
+          if (upsertResult.isNew) {
+            result.newApplicants++;
+          } else {
+            result.updatedApplicants++;
           }
         } catch (error) {
           result.errors.push(`행 ${sheetConfig.headerRow + 1 + i}: ${error}`);
@@ -131,7 +146,8 @@ export class SheetsSync {
   ): Applicant {
     const getColumnValue = (column: string | undefined): string => {
       if (!column) return '';
-      return String(rowData[column] || '');
+      const value = String(rowData[column] || '').trim();
+      return value;
     };
 
     const getNumberValue = (column: string | undefined): number => {
@@ -140,11 +156,33 @@ export class SheetsSync {
       return typeof value === 'number' ? value : parseInt(String(value), 10) || 0;
     };
 
+    // SNS URL에서 인스타그램 핸들 추출
+    const extractInstagramHandle = (url: string): string => {
+      if (!url) return '';
+      
+      // Instagram URL에서 사용자명 추출
+      const instagramMatch = url.match(/instagram\.com\/([^\/\?]+)/i);
+      if (instagramMatch && instagramMatch[1]) {
+        return instagramMatch[1].replace('@', '');
+      }
+      
+      // 이미 핸들 형태라면 그대로 사용
+      if (url.startsWith('@')) {
+        return url.substring(1);
+      }
+      
+      return url;
+    };
+
+    const rawEmail = getColumnValue(columnMapping.email);
+    const rawName = getColumnValue(columnMapping.name);
+    const snsUrl = getColumnValue(columnMapping.instagram);
+
     const applicant: Applicant = {
-      name: getColumnValue(columnMapping.name),
-      email: getColumnValue(columnMapping.email),
+      name: rawName,
+      email: rawEmail,
       phone: getColumnValue(columnMapping.phone),
-      instagramHandle: getColumnValue(columnMapping.instagram),
+      instagramHandle: extractInstagramHandle(snsUrl),
       followers: getNumberValue(columnMapping.followers),
       applicationDate: getColumnValue(columnMapping.applicationDate) || new Date().toISOString(),
       status: this.mapStatus(getColumnValue(columnMapping.status)),
@@ -227,21 +265,36 @@ export class SheetsSync {
     headers.forEach(header => {
       const lowerHeader = header.toLowerCase();
       
-      if (lowerHeader.includes('이름') || lowerHeader.includes('name')) {
+      // 이름 매핑 - "성함", "이름", "name" 등
+      if (lowerHeader.includes('성함') || lowerHeader.includes('이름') || lowerHeader.includes('name')) {
         mapping.name = header;
-      } else if (lowerHeader.includes('이메일') || lowerHeader.includes('email')) {
+      } 
+      // 이메일 매핑 - "메일주소", "이메일", "email" 등
+      else if (lowerHeader.includes('메일주소') || lowerHeader.includes('이메일') || lowerHeader.includes('email') || lowerHeader.includes('메일')) {
         mapping.email = header;
-      } else if (lowerHeader.includes('전화') || lowerHeader.includes('phone') || lowerHeader.includes('연락처')) {
+      } 
+      // 연락처 매핑 - "연락처", "전화", "phone" 등
+      else if (lowerHeader.includes('연락처') || lowerHeader.includes('전화') || lowerHeader.includes('phone') || lowerHeader.includes('핸드폰')) {
         mapping.phone = header;
-      } else if (lowerHeader.includes('인스타') || lowerHeader.includes('instagram')) {
+      } 
+      // SNS URL 매핑 - "SNS", "URL", "계정", "인스타" 등
+      else if (lowerHeader.includes('sns') || lowerHeader.includes('계정') || lowerHeader.includes('url') || lowerHeader.includes('인스타') || lowerHeader.includes('instagram')) {
         mapping.instagram = header;
-      } else if (lowerHeader.includes('팔로워') || lowerHeader.includes('followers')) {
+      } 
+      // 팔로워 수 매핑
+      else if (lowerHeader.includes('팔로워') || lowerHeader.includes('followers')) {
         mapping.followers = header;
-      } else if (lowerHeader.includes('신청일') || lowerHeader.includes('date') || lowerHeader.includes('날짜')) {
+      } 
+      // 신청일/타임스탬프 매핑
+      else if (lowerHeader.includes('타임스탬프') || lowerHeader.includes('신청일') || lowerHeader.includes('date') || lowerHeader.includes('날짜') || lowerHeader.includes('timestamp')) {
         mapping.applicationDate = header;
-      } else if (lowerHeader.includes('상태') || lowerHeader.includes('status')) {
+      } 
+      // 상태 매핑
+      else if (lowerHeader.includes('상태') || lowerHeader.includes('status')) {
         mapping.status = header;
-      } else if (lowerHeader.includes('메모') || lowerHeader.includes('notes') || lowerHeader.includes('비고')) {
+      } 
+      // 메모/비고 매핑
+      else if (lowerHeader.includes('메모') || lowerHeader.includes('notes') || lowerHeader.includes('비고') || lowerHeader.includes('기타') || lowerHeader.includes('동의')) {
         mapping.notes = header;
       }
     });

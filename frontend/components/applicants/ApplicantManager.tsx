@@ -209,24 +209,53 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
               </label>
               <select 
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const selectedSheet = connectedSheet.sheets.find(s => s.title === e.target.value);
                   if (selectedSheet) {
-                    setSheetConfig({
-                      sheetId: connectedSheet.sheetId,
-                      sheetName: selectedSheet.title,
-                      headerRow: 1,
-                      columnMapping: {
-                        name: '이름',
-                        email: '이메일',
-                        phone: '전화번호',
-                        instagram: '인스타그램',
-                        followers: '팔로워수',
-                        applicationDate: '신청일',
-                        status: '상태',
-                        notes: '메모'
+                    try {
+                      // 시트 구조 분석
+                      const response = await axios.post('/api/sheets/analyze', {
+                        sheetId: connectedSheet.sheetId,
+                        sheetName: selectedSheet.title
+                      });
+
+                      if (response.data.success) {
+                        const analysis = response.data.data;
+                        setSheetConfig({
+                          sheetId: connectedSheet.sheetId,
+                          sheetName: selectedSheet.title,
+                          headerRow: 1,
+                          columnMapping: {
+                            name: analysis.suggestedMapping.name || '성함',
+                            email: analysis.suggestedMapping.email || '메일주소',
+                            phone: analysis.suggestedMapping.phone || '연락처',
+                            instagram: analysis.suggestedMapping.instagram || 'SNS 계정 URL',
+                            followers: analysis.suggestedMapping.followers || '',
+                            applicationDate: analysis.suggestedMapping.applicationDate || '타임스탬프',
+                            status: analysis.suggestedMapping.status || '',
+                            notes: analysis.suggestedMapping.notes || '개인정보 활용 동의'
+                          }
+                        });
                       }
-                    });
+                    } catch (error) {
+                      console.error('시트 분석 오류:', error);
+                      // 기본값으로 설정
+                      setSheetConfig({
+                        sheetId: connectedSheet.sheetId,
+                        sheetName: selectedSheet.title,
+                        headerRow: 1,
+                        columnMapping: {
+                          name: '성함',
+                          email: '메일주소',
+                          phone: '연락처',
+                          instagram: 'SNS 계정 URL',
+                          followers: '',
+                          applicationDate: '타임스탬프',
+                          status: '',
+                          notes: '개인정보 활용 동의'
+                        }
+                      });
+                    }
                   }
                 }}
               >
@@ -240,14 +269,108 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
             </div>
 
             {sheetConfig && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">
-                  선택된 시트: <strong>{sheetConfig.sheetName}</strong>
-                </p>
-                <p className="text-xs text-gray-500">
-                  시트의 첫 번째 행이 헤더로 사용됩니다. 
-                  실제 컬럼명에 맞게 매핑을 조정해야 할 수 있습니다.
-                </p>
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">
+                    선택된 시트: <strong>{sheetConfig.sheetName}</strong>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    아래 매핑을 확인하고 필요시 수정하세요. 빈 값은 해당 정보가 없다는 의미입니다.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">이름 컬럼</label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.name}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, name: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="성함"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">이메일 컬럼 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.email}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, email: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="메일주소"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">연락처 컬럼</label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.phone || ''}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, phone: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="연락처"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">SNS URL 컬럼</label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.instagram || ''}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, instagram: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="리뷰 작성할 SNS 계정 URL"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">신청일 컬럼</label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.applicationDate || ''}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, applicationDate: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="타임스탬프"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">메모 컬럼</label>
+                    <input
+                      type="text"
+                      value={sheetConfig.columnMapping.notes || ''}
+                      onChange={(e) => setSheetConfig(prev => prev ? {
+                        ...prev,
+                        columnMapping: { ...prev.columnMapping, notes: e.target.value }
+                      } : null)}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      placeholder="개인정보 활용 동의"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    <strong>💡 팁:</strong> 시트의 실제 컬럼명을 정확히 입력해주세요. 
+                    대소문자와 띄어쓰기도 정확히 일치해야 합니다.
+                  </p>
+                </div>
               </div>
             )}
           </div>

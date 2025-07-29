@@ -3,7 +3,7 @@
  * MemoryStorage를 대체하는 실제 데이터베이스 연동 서비스
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ApplicantStatus, SNSPlatform, ProcessingStatus } from '@prisma/client';
 import { Applicant, SyncResult } from '@/types/applicant';
 import { SelectionRecord } from '@/types/selection';
 
@@ -68,7 +68,7 @@ export class DatabaseService {
           data: {
             name: applicant.name,
             phone: applicant.phone,
-            status: applicant.status as any,
+            status: this.mapStatusToPrisma(applicant.status),
             notes: applicant.notes,
             sheetRowIndex: applicant.sheetRowIndex,
             snsProfiles: {
@@ -98,7 +98,7 @@ export class DatabaseService {
             name: applicant.name,
             email: applicant.email,
             phone: applicant.phone,
-            status: applicant.status as any,
+            status: this.mapStatusToPrisma(applicant.status),
             notes: applicant.notes,
             sheetRowIndex: applicant.sheetRowIndex,
             campaignId,
@@ -182,9 +182,9 @@ export class DatabaseService {
           isSelected: selectionRecord.isSelected,
           selectionReason: selectionRecord.selectionReason,
           qualifyingPlatforms: selectionRecord.qualifyingPlatforms,
-          meetsCriteria: selectionRecord.meetsCriteria as any,
-          snsDataSnapshot: selectionRecord.snsData as any,
-          processingStatus: selectionRecord.processingStatus as any,
+          meetsCriteria: selectionRecord.meetsCriteria,
+          snsDataSnapshot: selectionRecord.snsData,
+          processingStatus: this.mapProcessingStatusToPrisma(selectionRecord.processingStatus),
           sheetUpdated: selectionRecord.sheetUpdated,
           sheetUpdateDate: selectionRecord.sheetUpdateDate ? new Date(selectionRecord.sheetUpdateDate) : null,
           emailSent: selectionRecord.emailSent,
@@ -196,9 +196,9 @@ export class DatabaseService {
           isSelected: selectionRecord.isSelected,
           selectionReason: selectionRecord.selectionReason,
           qualifyingPlatforms: selectionRecord.qualifyingPlatforms,
-          meetsCriteria: selectionRecord.meetsCriteria as any,
-          snsDataSnapshot: selectionRecord.snsData as any,
-          processingStatus: selectionRecord.processingStatus as any,
+          meetsCriteria: selectionRecord.meetsCriteria,
+          snsDataSnapshot: selectionRecord.snsData,
+          processingStatus: this.mapProcessingStatusToPrisma(selectionRecord.processingStatus),
           sheetUpdated: selectionRecord.sheetUpdated,
           sheetUpdateDate: selectionRecord.sheetUpdateDate ? new Date(selectionRecord.sheetUpdateDate) : null,
           emailSent: selectionRecord.emailSent,
@@ -338,6 +338,7 @@ export class DatabaseService {
   /**
    * Prisma 모델을 Applicant 타입으로 변환
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static mapPrismaToApplicant(prismaApplicant: any): Applicant {
     return {
       id: prismaApplicant.id,
@@ -349,6 +350,7 @@ export class DatabaseService {
       notes: prismaApplicant.notes,
       sheetRowIndex: prismaApplicant.sheetRowIndex,
       lastUpdated: prismaApplicant.lastUpdated.toISOString(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       snsProfiles: prismaApplicant.snsProfiles?.map((profile: any) => ({
         platform: this.mapPrismaToPlatform(profile.platform),
         url: profile.url,
@@ -363,16 +365,48 @@ export class DatabaseService {
   /**
    * 플랫폼 이름 매핑: 앱 -> Prisma enum
    */
-  private static mapPlatformToPrisma(platform: string) {
+  private static mapPlatformToPrisma(platform: string): SNSPlatform {
     switch (platform) {
       case 'blog':
-        return 'NAVER_BLOG';
+        return SNSPlatform.NAVER_BLOG;
       case 'instagram':
-        return 'INSTAGRAM';
+        return SNSPlatform.INSTAGRAM;
       case 'threads':
-        return 'THREADS';
+        return SNSPlatform.THREADS;
       default:
-        return 'INSTAGRAM';
+        return SNSPlatform.INSTAGRAM;
+    }
+  }
+
+  /**
+   * 신청자 상태 매핑: 앱 -> Prisma enum
+   */
+  private static mapStatusToPrisma(status: string): ApplicantStatus {
+    switch (status) {
+      case 'pending':
+        return ApplicantStatus.PENDING;
+      case 'approved':
+        return ApplicantStatus.APPROVED;
+      case 'rejected':
+        return ApplicantStatus.REJECTED;
+      default:
+        return ApplicantStatus.PENDING;
+    }
+  }
+
+  /**
+   * 처리 상태 매핑: 앱 -> Prisma enum
+   */
+  private static mapProcessingStatusToPrisma(status: string): ProcessingStatus {
+    switch (status) {
+      case 'pending':
+        return ProcessingStatus.PENDING;
+      case 'completed':
+        return ProcessingStatus.COMPLETED;
+      case 'failed':
+        return ProcessingStatus.FAILED;
+      default:
+        return ProcessingStatus.COMPLETED;
     }
   }
 

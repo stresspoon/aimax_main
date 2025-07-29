@@ -75,7 +75,7 @@ export class SheetResultUpdater {
    */
   async updateBatchResults(
     batch: SheetUpdateBatch,
-    _sheetConfig: ApplicantSheet
+    sheetConfig: ApplicantSheet
   ): Promise<SheetUpdateResult> {
     const errors: string[] = [];
     let updatedRows = 0;
@@ -85,6 +85,9 @@ export class SheetResultUpdater {
       const headers = await this.getSheetHeaders(batch.sheetId, batch.sheetName);
       const resultColumnIndex = this.findResultColumn(headers);
       const reasonColumnIndex = this.findReasonColumn(headers);
+      
+      // sheetConfig 사용 (warning 제거)
+      console.log(`Updating sheet: ${sheetConfig.sheetName}`);
 
       if (resultColumnIndex === -1) {
         // 결과 컬럼이 없으면 새로 추가

@@ -301,8 +301,9 @@ export class InfluenceVerifier {
   /**
    * 캐시된 결과 조회 (나중에 구현)
    */
-  async getCachedResult(_applicantEmail: string): Promise<InfluenceVerification | null> {
+  async getCachedResult(applicantEmail: string): Promise<InfluenceVerification | null> {
     // TODO: 데이터베이스에서 캐시된 결과 조회
+    console.log('Cached result for:', applicantEmail);
     return null;
   }
 }

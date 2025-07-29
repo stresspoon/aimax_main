@@ -27,6 +27,7 @@ export class MemoryStorage {
     const updatedApplicant: Applicant = {
       ...applicant,
       id: applicant.id || this.generateId(),
+      snsProfiles: applicant.snsProfiles || [], // 기본값 설정
       lastUpdated: now
     };
 

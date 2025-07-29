@@ -3,7 +3,7 @@
  */
 
 import { google } from 'googleapis';
-import { Applicant, SyncResult, SheetDataRow, ApplicantSheet } from '@/types/applicant';
+import { Applicant, SyncResult, SheetDataRow, ApplicantSheet, SNSProfile } from '@/types/applicant';
 import { MemoryStorage } from './memoryStorage';
 
 export class SheetsSync {
@@ -137,6 +137,111 @@ export class SheetsSync {
   }
 
   /**
+   * Instagram URL에서 핸들 추출
+   */
+  private extractInstagramHandle(url: string): string {
+    if (!url) return '';
+    
+    // Instagram URL에서 사용자명 추출
+    const instagramMatch = url.match(/instagram\.com\/([^\/\?]+)/i);
+    if (instagramMatch && instagramMatch[1]) {
+      return instagramMatch[1].replace('@', '');
+    }
+    
+    // 이미 핸들 형태라면 그대로 사용
+    if (url.startsWith('@')) {
+      return url.substring(1);
+    }
+    
+    return url;
+  }
+
+  /**
+   * URL에서 SNS 플랫폼 식별 및 프로필 생성
+   */
+  private parseSNSUrl(url: string): SNSProfile | null {
+    if (!url || url.trim() === '') return null;
+    
+    const cleanUrl = url.trim();
+    
+    // Instagram 감지
+    if (cleanUrl.includes('instagram.com') || cleanUrl.includes('@') && !cleanUrl.includes('blog')) {
+      const handle = this.extractInstagramHandle(cleanUrl);
+      return {
+        platform: 'instagram',
+        url: cleanUrl.includes('instagram.com') ? cleanUrl : `https://www.instagram.com/${handle}`,
+        handle: handle
+      };
+    }
+    
+    // 네이버 블로그 감지
+    if (cleanUrl.includes('blog.naver.com') || cleanUrl.includes('naver') || cleanUrl.includes('blog')) {
+      return {
+        platform: 'blog',
+        url: cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`
+      };
+    }
+    
+    // Threads 감지
+    if (cleanUrl.includes('threads.net') || cleanUrl.includes('threads')) {
+      return {
+        platform: 'threads',
+        url: cleanUrl.startsWith('http') ? cleanUrl : `https://www.threads.net/${cleanUrl}`
+      };
+    }
+    
+    // 기본적으로 Instagram으로 처리 (기존 호환성)
+    const handle = this.extractInstagramHandle(cleanUrl);
+    if (handle) {
+      return {
+        platform: 'instagram',
+        url: cleanUrl.includes('instagram.com') ? cleanUrl : `https://www.instagram.com/${handle}`,
+        handle: handle
+      };
+    }
+    
+    return null;
+  }
+  
+  /**
+   * 다중 SNS URL 컬럼들을 파싱하여 SNS 프로필 배열 생성
+   */
+  private parseSNSProfiles(rowData: SheetDataRow, columnMapping: ApplicantSheet['columnMapping']): SNSProfile[] {
+    const profiles: SNSProfile[] = [];
+    
+    // 기존 instagram 컬럼 처리 (하위 호환성)
+    if (columnMapping.instagram) {
+      const instagramUrl = String(rowData[columnMapping.instagram] || '').trim();
+      if (instagramUrl) {
+        const profile = this.parseSNSUrl(instagramUrl);
+        if (profile) profiles.push(profile);
+      }
+    }
+    
+    // 추가 SNS URL 컬럼들 처리
+    if (columnMapping.snsUrls && columnMapping.snsUrls.length > 0) {
+      columnMapping.snsUrls.forEach(columnName => {
+        const url = String(rowData[columnName] || '').trim();
+        if (url) {
+          const profile = this.parseSNSUrl(url);
+          if (profile) {
+            // 중복 URL 체크 (같은 플랫폼의 같은 URL이 있으면 건너뛰기)
+            const isDuplicate = profiles.some(p => 
+              p.platform === profile.platform && 
+              (p.url === profile.url || p.handle === profile.handle)
+            );
+            if (!isDuplicate) {
+              profiles.push(profile);
+            }
+          }
+        }
+      });
+    }
+    
+    return profiles;
+  }
+
+  /**
    * 시트 행 데이터를 신청자 객체로 변환
    */
   private mapRowToApplicant(
@@ -156,34 +261,24 @@ export class SheetsSync {
       return typeof value === 'number' ? value : parseInt(String(value), 10) || 0;
     };
 
-    // SNS URL에서 인스타그램 핸들 추출
-    const extractInstagramHandle = (url: string): string => {
-      if (!url) return '';
-      
-      // Instagram URL에서 사용자명 추출
-      const instagramMatch = url.match(/instagram\.com\/([^\/\?]+)/i);
-      if (instagramMatch && instagramMatch[1]) {
-        return instagramMatch[1].replace('@', '');
-      }
-      
-      // 이미 핸들 형태라면 그대로 사용
-      if (url.startsWith('@')) {
-        return url.substring(1);
-      }
-      
-      return url;
-    };
-
     const rawEmail = getColumnValue(columnMapping.email);
     const rawName = getColumnValue(columnMapping.name);
     const snsUrl = getColumnValue(columnMapping.instagram);
+    
+    // 다중 SNS 프로필 파싱
+    const snsProfiles = this.parseSNSProfiles(rowData, columnMapping);
+    
+    // 기존 호환성을 위한 Instagram 정보 추출
+    const instagramProfile = snsProfiles.find(p => p.platform === 'instagram');
 
     const applicant: Applicant = {
       name: rawName,
       email: rawEmail,
       phone: getColumnValue(columnMapping.phone),
-      instagramHandle: extractInstagramHandle(snsUrl),
-      followers: getNumberValue(columnMapping.followers),
+      snsProfiles: snsProfiles,
+      // 기존 호환성을 위해 유지
+      instagramHandle: instagramProfile?.handle || this.extractInstagramHandle(snsUrl),
+      followers: instagramProfile?.followers || getNumberValue(columnMapping.followers),
       applicationDate: getColumnValue(columnMapping.applicationDate) || new Date().toISOString(),
       status: this.mapStatus(getColumnValue(columnMapping.status)),
       notes: getColumnValue(columnMapping.notes),
@@ -261,6 +356,7 @@ export class SheetsSync {
    */
   private suggestColumnMapping(headers: string[]): Partial<ApplicantSheet['columnMapping']> {
     const mapping: Partial<ApplicantSheet['columnMapping']> = {};
+    const snsUrls: string[] = [];
 
     headers.forEach(header => {
       const lowerHeader = header.toLowerCase();
@@ -277,9 +373,18 @@ export class SheetsSync {
       else if (lowerHeader.includes('연락처') || lowerHeader.includes('전화') || lowerHeader.includes('phone') || lowerHeader.includes('핸드폰')) {
         mapping.phone = header;
       } 
-      // SNS URL 매핑 - "SNS", "URL", "계정", "인스타" 등
-      else if (lowerHeader.includes('sns') || lowerHeader.includes('계정') || lowerHeader.includes('url') || lowerHeader.includes('인스타') || lowerHeader.includes('instagram')) {
+      // 메인 SNS URL 매핑 - "리뷰 작성할 SNS 계정 URL" 등
+      else if (lowerHeader.includes('리뷰') && lowerHeader.includes('sns') && lowerHeader.includes('계정')) {
         mapping.instagram = header;
+        snsUrls.push(header);
+      }
+      // 추가 SNS URL 컬럼들 매핑 - "다른 SNS에도" 등
+      else if ((lowerHeader.includes('sns') || lowerHeader.includes('계정') || lowerHeader.includes('url') || lowerHeader.includes('인스타') || lowerHeader.includes('instagram') || lowerHeader.includes('블로그') || lowerHeader.includes('blog') || lowerHeader.includes('스레드') || lowerHeader.includes('threads')) && !snsUrls.includes(header)) {
+        snsUrls.push(header);
+        // 첫 번째 SNS 컬럼이 아직 설정되지 않았다면 instagram으로 설정
+        if (!mapping.instagram) {
+          mapping.instagram = header;
+        }
       } 
       // 팔로워 수 매핑
       else if (lowerHeader.includes('팔로워') || lowerHeader.includes('followers')) {
@@ -298,6 +403,11 @@ export class SheetsSync {
         mapping.notes = header;
       }
     });
+
+    // 다중 SNS URL 컬럼들 설정
+    if (snsUrls.length > 0) {
+      mapping.snsUrls = snsUrls;
+    }
 
     return mapping;
   }

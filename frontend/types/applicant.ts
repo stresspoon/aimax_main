@@ -2,11 +2,20 @@
  * 신청자 데이터 타입 정의
  */
 
+export interface SNSProfile {
+  platform: 'instagram' | 'blog' | 'threads';
+  url: string;
+  handle?: string;
+  followers?: number;
+}
+
 export interface Applicant {
   id?: string;
   name: string;
   email: string;
   phone?: string;
+  snsProfiles: SNSProfile[];
+  // 기존 호환성을 위해 유지
   instagramHandle?: string;
   followers?: number;
   applicationDate: string;
@@ -37,6 +46,7 @@ export interface ApplicantSheet {
     email: string;
     phone?: string;
     instagram?: string;
+    snsUrls?: string[]; // 다중 SNS URL 컬럼들
     followers?: string;
     applicationDate?: string;
     status?: string;

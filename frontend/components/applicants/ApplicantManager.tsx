@@ -246,7 +246,8 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                             name: analysis.suggestedMapping.name || '성함',
                             email: analysis.suggestedMapping.email || '메일주소',
                             phone: analysis.suggestedMapping.phone || '연락처',
-                            instagram: analysis.suggestedMapping.instagram || 'SNS 계정 URL',
+                            instagram: analysis.suggestedMapping.instagram || '리뷰 작성할 SNS 계정 URL',
+                            snsUrls: analysis.suggestedMapping.snsUrls || ['리뷰 작성할 SNS 계정 URL', '다른 SNS에도 올릴 사람..?'],
                             followers: analysis.suggestedMapping.followers || '',
                             applicationDate: analysis.suggestedMapping.applicationDate || '타임스탬프',
                             status: analysis.suggestedMapping.status || '',
@@ -265,7 +266,8 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                           name: '성함',
                           email: '메일주소',
                           phone: '연락처',
-                          instagram: 'SNS 계정 URL',
+                          instagram: '리뷰 작성할 SNS 계정 URL',
+                          snsUrls: ['리뷰 작성할 SNS 계정 URL', '다른 SNS에도 올릴 사람..?'],
                           followers: '',
                           applicationDate: '타임스탬프',
                           status: '',
@@ -340,7 +342,7 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">SNS URL 컬럼</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">메인 SNS URL 컬럼</label>
                     <input
                       type="text"
                       value={sheetConfig.columnMapping.instagram || ''}
@@ -351,6 +353,56 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                       placeholder="리뷰 작성할 SNS 계정 URL"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">추가 SNS URL 컬럼들</label>
+                    <div className="space-y-2">
+                      {(sheetConfig.columnMapping.snsUrls || []).map((url, index) => (
+                        <div key={index} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={url}
+                            onChange={(e) => {
+                              const newUrls = [...(sheetConfig.columnMapping.snsUrls || [])];
+                              newUrls[index] = e.target.value;
+                              setSheetConfig(prev => prev ? {
+                                ...prev,
+                                columnMapping: { ...prev.columnMapping, snsUrls: newUrls }
+                              } : null);
+                            }}
+                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                            placeholder={`SNS URL 컬럼 ${index + 1}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newUrls = (sheetConfig.columnMapping.snsUrls || []).filter((_, i) => i !== index);
+                              setSheetConfig(prev => prev ? {
+                                ...prev,
+                                columnMapping: { ...prev.columnMapping, snsUrls: newUrls }
+                              } : null);
+                            }}
+                            className="px-2 py-1 text-red-600 hover:text-red-800 text-sm"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newUrls = [...(sheetConfig.columnMapping.snsUrls || []), ''];
+                          setSheetConfig(prev => prev ? {
+                            ...prev,
+                            columnMapping: { ...prev.columnMapping, snsUrls: newUrls }
+                          } : null);
+                        }}
+                        className="px-3 py-1 text-blue-600 hover:text-blue-800 text-sm border border-blue-300 rounded"
+                      >
+                        + SNS 컬럼 추가
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -421,7 +473,7 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                     연락처
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    인스타그램
+                    SNS 계정
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
@@ -444,11 +496,39 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                       {applicant.phone || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>
-                        <div>@{applicant.instagramHandle || '-'}</div>
-                        {applicant.followers && (
-                          <div className="text-xs text-gray-500">
-                            {applicant.followers.toLocaleString()} 팔로워
+                      <div className="space-y-1">
+                        {applicant.snsProfiles && applicant.snsProfiles.length > 0 ? (
+                          applicant.snsProfiles.map((profile, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                profile.platform === 'instagram' 
+                                  ? 'bg-pink-100 text-pink-800'
+                                  : profile.platform === 'blog'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {profile.platform === 'instagram' ? 'IG' : 
+                                 profile.platform === 'blog' ? '블로그' : 'Threads'}
+                              </span>
+                              <span className="text-sm">
+                                {profile.handle ? `@${profile.handle}` : '링크'}
+                              </span>
+                              {profile.followers && (
+                                <span className="text-xs text-gray-500">
+                                  {profile.followers.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          // 기존 호환성 유지
+                          <div>
+                            <div>@{applicant.instagramHandle || '-'}</div>
+                            {applicant.followers && (
+                              <div className="text-xs text-gray-500">
+                                {applicant.followers.toLocaleString()} 팔로워
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -552,9 +632,12 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
               <InfluenceVerifier
                 applicantEmail={selectedApplicant.email}
                 initialUrls={{
-                  instagram: selectedApplicant.instagramHandle 
-                    ? `https://www.instagram.com/${selectedApplicant.instagramHandle.replace('@', '')}`
-                    : undefined
+                  instagram: selectedApplicant.snsProfiles?.find(p => p.platform === 'instagram')?.url ||
+                    (selectedApplicant.instagramHandle 
+                      ? `https://www.instagram.com/${selectedApplicant.instagramHandle.replace('@', '')}`
+                      : undefined),
+                  naverBlog: selectedApplicant.snsProfiles?.find(p => p.platform === 'blog')?.url,
+                  threads: selectedApplicant.snsProfiles?.find(p => p.platform === 'threads')?.url
                 }}
                 onVerificationComplete={(result: InfluenceVerification) => {
                   console.log('검증 완료:', result);

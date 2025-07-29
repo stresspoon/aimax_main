@@ -43,87 +43,111 @@ export class DatabaseService {
 
   /**
    * 신청자 저장/업데이트 (upsert)
+   * P2003 Foreign Key 제약 조건 오류 방지를 위한 트랜잭션 기반 처리
    */
   static async upsertApplicant(
     applicant: Applicant,
     campaignId: string
   ): Promise<{ isNew: boolean; applicant: Applicant }> {
     try {
-      const existingApplicant = await prisma.applicant.findUnique({
-        where: {
-          campaignId_email: {
-            campaignId,
-            email: applicant.email,
+      return await prisma.$transaction(async (tx) => {
+        // 1. Campaign 존재 여부 확인 및 검증
+        if (!campaignId) {
+          throw new Error('Campaign ID가 필요합니다.');
+        }
+
+        const campaignExists = await tx.campaign.findUnique({
+          where: { id: campaignId },
+          select: { id: true }
+        });
+
+        if (!campaignExists) {
+          console.warn(`Campaign ${campaignId} 존재하지 않음. 데이터 무결성 오류 발생 가능.`);
+          throw new Error(`Campaign ${campaignId}를 찾을 수 없습니다. 먼저 캠페인을 생성해주세요.`);
+        }
+
+        // 2. 기존 신청자 확인
+        const existingApplicant = await tx.applicant.findUnique({
+          where: {
+            campaignId_email: {
+              campaignId,
+              email: applicant.email,
+            },
           },
-        },
-        include: {
-          snsProfiles: true,
-        },
+          include: {
+            snsProfiles: true,
+          },
+        });
+
+        if (existingApplicant) {
+          // 3. 기존 신청자 업데이트
+          const updatedApplicant = await tx.applicant.update({
+            where: { id: existingApplicant.id },
+            data: {
+              name: applicant.name,
+              phone: applicant.phone,
+              status: this.mapStatusToPrisma(applicant.status),
+              notes: applicant.notes,
+              sheetRowIndex: applicant.sheetRowIndex,
+              snsProfiles: {
+                deleteMany: {},
+                create: applicant.snsProfiles?.map(profile => ({
+                  platform: this.mapPlatformToPrisma(profile.platform),
+                  url: profile.url,
+                  handle: profile.handle,
+                  followers: profile.followers,
+                  visitors: profile.visitors,
+                  isValid: profile.isValid,
+                })) || [],
+              },
+            },
+            include: {
+              snsProfiles: true,
+              selectionResults: true,
+              mailHistories: true,
+            },
+          });
+
+          return { isNew: false, applicant: this.mapPrismaToApplicant(updatedApplicant) };
+        } else {
+          // 4. 새 신청자 생성
+          console.log(`Creating new applicant with campaignId: ${campaignId}`);
+          
+          const newApplicant = await tx.applicant.create({
+            data: {
+              name: applicant.name,
+              email: applicant.email,
+              phone: applicant.phone,
+              status: this.mapStatusToPrisma(applicant.status),
+              notes: applicant.notes,
+              sheetRowIndex: applicant.sheetRowIndex,
+              campaignId,
+              snsProfiles: {
+                create: applicant.snsProfiles?.map(profile => ({
+                  platform: this.mapPlatformToPrisma(profile.platform),
+                  url: profile.url,
+                  handle: profile.handle,
+                  followers: profile.followers,
+                  visitors: profile.visitors,
+                  isValid: profile.isValid,
+                })) || [],
+              },
+            },
+            include: {
+              snsProfiles: true,
+              selectionResults: true,
+              mailHistories: true,
+            },
+          });
+
+          return { isNew: true, applicant: this.mapPrismaToApplicant(newApplicant) };
+        }
       });
-
-      if (existingApplicant) {
-        // 기존 신청자 업데이트
-        const updatedApplicant = await prisma.applicant.update({
-          where: { id: existingApplicant.id },
-          data: {
-            name: applicant.name,
-            phone: applicant.phone,
-            status: this.mapStatusToPrisma(applicant.status),
-            notes: applicant.notes,
-            sheetRowIndex: applicant.sheetRowIndex,
-            snsProfiles: {
-              deleteMany: {},
-              create: applicant.snsProfiles?.map(profile => ({
-                platform: this.mapPlatformToPrisma(profile.platform),
-                url: profile.url,
-                handle: profile.handle,
-                followers: profile.followers,
-                visitors: profile.visitors,
-                isValid: profile.isValid,
-              })) || [],
-            },
-          },
-          include: {
-            snsProfiles: true,
-            selectionResults: true,
-            mailHistories: true,
-          },
-        });
-
-        return { isNew: false, applicant: this.mapPrismaToApplicant(updatedApplicant) };
-      } else {
-        // 새 신청자 생성
-        const newApplicant = await prisma.applicant.create({
-          data: {
-            name: applicant.name,
-            email: applicant.email,
-            phone: applicant.phone,
-            status: this.mapStatusToPrisma(applicant.status),
-            notes: applicant.notes,
-            sheetRowIndex: applicant.sheetRowIndex,
-            campaignId,
-            snsProfiles: {
-              create: applicant.snsProfiles?.map(profile => ({
-                platform: this.mapPlatformToPrisma(profile.platform),
-                url: profile.url,
-                handle: profile.handle,
-                followers: profile.followers,
-                visitors: profile.visitors,
-                isValid: profile.isValid,
-              })) || [],
-            },
-          },
-          include: {
-            snsProfiles: true,
-            selectionResults: true,
-            mailHistories: true,
-          },
-        });
-
-        return { isNew: true, applicant: this.mapPrismaToApplicant(newApplicant) };
-      }
     } catch (error) {
       console.error('신청자 저장/업데이트 오류:', error);
+      if (error instanceof Error && error.message.includes('P2003')) {
+        throw new Error('Foreign Key 제약 조건 위반: 참조하는 캠페인이 존재하지 않습니다.');
+      }
       throw new Error('신청자 데이터 저장 실패');
     }
   }
@@ -212,34 +236,37 @@ export class DatabaseService {
   }
 
   /**
-   * 동기화 로그 저장
+   * 동기화 로그 저장 (트랜잭션으로 데이터 일관성 보장)
    */
   static async logSyncResult(result: SyncResult): Promise<void> {
     try {
-      await prisma.syncLog.create({
-        data: {
-          success: result.success,
-          newApplicants: result.newApplicants,
-          updatedApplicants: result.updatedApplicants,
-          errors: result.errors,
-        },
-      });
-
-      // 최근 100개 로그만 유지
-      const logs = await prisma.syncLog.findMany({
-        orderBy: { createdAt: 'desc' },
-        skip: 100,
-      });
-
-      if (logs.length > 0) {
-        await prisma.syncLog.deleteMany({
-          where: {
-            id: {
-              in: logs.map(log => log.id),
-            },
+      await prisma.$transaction(async (tx) => {
+        // 1. 동기화 로그 생성
+        await tx.syncLog.create({
+          data: {
+            success: result.success,
+            newApplicants: result.newApplicants,
+            updatedApplicants: result.updatedApplicants,
+            errors: result.errors,
           },
         });
-      }
+
+        // 2. 최근 100개 로그만 유지 (원자적 처리)
+        const logs = await tx.syncLog.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: 100,
+        });
+
+        if (logs.length > 0) {
+          await tx.syncLog.deleteMany({
+            where: {
+              id: {
+                in: logs.map(log => log.id),
+              },
+            },
+          });
+        }
+      });
     } catch (error) {
       console.error('동기화 로그 저장 오류:', error);
     }
@@ -269,7 +296,7 @@ export class DatabaseService {
   }
 
   /**
-   * 캠페인 생성/조회
+   * 캠페인 생성/조회 (트랜잭션으로 안전성 보장)
    */
   static async upsertCampaign(
     userId: string,
@@ -282,42 +309,64 @@ export class DatabaseService {
     }
   ): Promise<string> {
     try {
-      // 기존 캠페인 찾기
-      const existingCampaign = await prisma.campaign.findFirst({
-        where: {
-          userId,
-          name: campaignData.name,
-        },
-      });
+      // 사용자 ID 검증
+      if (!userId) {
+        throw new Error('사용자 ID가 필요합니다.');
+      }
 
-      if (existingCampaign) {
-        // 기존 캠페인 업데이트
-        const campaign = await prisma.campaign.update({
-          where: { id: existingCampaign.id },
-          data: {
-            description: campaignData.description,
-            sheetId: campaignData.sheetId,
-            sheetName: campaignData.sheetName,
-            sheetUrl: campaignData.sheetUrl,
-          },
+      return await prisma.$transaction(async (tx) => {
+        // 1. 사용자 존재 확인
+        const userExists = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true }
         });
-        return campaign.id;
-      } else {
-        // 새 캠페인 생성
-        const campaign = await prisma.campaign.create({
-          data: {
+
+        if (!userExists) {
+          throw new Error(`사용자 ${userId}를 찾을 수 없습니다.`);
+        }
+
+        // 2. 기존 캠페인 찾기
+        const existingCampaign = await tx.campaign.findFirst({
+          where: {
             userId,
             name: campaignData.name,
-            description: campaignData.description,
-            sheetId: campaignData.sheetId,
-            sheetName: campaignData.sheetName,
-            sheetUrl: campaignData.sheetUrl,
           },
         });
-        return campaign.id;
-      }
+
+        if (existingCampaign) {
+          // 3. 기존 캠페인 업데이트
+          console.log(`Updating existing campaign: ${existingCampaign.id}`);
+          const campaign = await tx.campaign.update({
+            where: { id: existingCampaign.id },
+            data: {
+              description: campaignData.description,
+              sheetId: campaignData.sheetId,
+              sheetName: campaignData.sheetName,
+              sheetUrl: campaignData.sheetUrl,
+            },
+          });
+          return campaign.id;
+        } else {
+          // 4. 새 캠페인 생성
+          console.log(`Creating new campaign for user: ${userId}`);
+          const campaign = await tx.campaign.create({
+            data: {
+              userId,
+              name: campaignData.name,
+              description: campaignData.description,
+              sheetId: campaignData.sheetId,
+              sheetName: campaignData.sheetName,
+              sheetUrl: campaignData.sheetUrl,
+            },
+          });
+          return campaign.id;
+        }
+      });
     } catch (error) {
       console.error('캠페인 생성/업데이트 오류:', error);
+      if (error instanceof Error && error.message.includes('P2003')) {
+        throw new Error('Foreign Key 제약 조건 위반: 참조하는 사용자가 존재하지 않습니다.');
+      }
       throw new Error('캠페인 처리 실패');
     }
   }
@@ -437,11 +486,21 @@ export class DatabaseService {
   }
 
   /**
-   * 데이터베이스 연결 상태 확인
+   * 데이터베이스 연결 상태 및 참조 무결성 확인
    */
   static async checkConnection(): Promise<boolean> {
     try {
+      // 1. 기본 연결 확인
       await prisma.$queryRaw`SELECT 1`;
+      
+      // 2. 주요 테이블 존재 확인
+      const tableChecks = await Promise.all([
+        prisma.user.findFirst({ select: { id: true } }),
+        prisma.campaign.findFirst({ select: { id: true } }),
+        prisma.applicant.findFirst({ select: { id: true } })
+      ]);
+      
+      console.log('데이터베이스 연결 및 테이블 확인 완료');
       return true;
     } catch (error) {
       console.error('데이터베이스 연결 확인 실패:', error);

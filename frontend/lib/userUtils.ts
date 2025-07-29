@@ -44,15 +44,30 @@ export async function findOrCreateDefaultCampaign(
   userId: string, 
   sheetConfig?: { sheetId?: string; sheetName?: string }
 ) {
-  const { DatabaseService } = await import('./database');
-  
-  return await DatabaseService.upsertCampaign(userId, {
-    name: sheetConfig?.sheetName || 'Default Campaign',
-    description: 'Automatically created campaign',
-    sheetId: sheetConfig?.sheetId,
-    sheetName: sheetConfig?.sheetName,
-    sheetUrl: sheetConfig?.sheetId 
-      ? `https://docs.google.com/spreadsheets/d/${sheetConfig.sheetId}`
-      : undefined
-  });
+  try {
+    const { DatabaseService } = await import('./database');
+    
+    // 입력 데이터 검증
+    if (!userId) {
+      throw new Error('사용자 ID가 필요합니다.');
+    }
+
+    console.log(`Creating/finding campaign for user: ${userId}`);
+    
+    const campaignId = await DatabaseService.upsertCampaign(userId, {
+      name: sheetConfig?.sheetName || 'Default Campaign',
+      description: 'Automatically created campaign',
+      sheetId: sheetConfig?.sheetId,
+      sheetName: sheetConfig?.sheetName,
+      sheetUrl: sheetConfig?.sheetId 
+        ? `https://docs.google.com/spreadsheets/d/${sheetConfig.sheetId}`
+        : undefined
+    });
+
+    console.log(`Campaign ID resolved: ${campaignId}`);
+    return campaignId;
+  } catch (error) {
+    console.error('캠페인 생성/조회 오류:', error);
+    throw new Error('캠페인 처리 실패');
+  }
 }

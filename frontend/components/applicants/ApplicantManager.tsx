@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import { Applicant, SyncResult, ApplicantSheet } from '@/types/applicant';
 import { InfluenceVerification } from '@/types/influence';
+import { SelectionRecord } from '@/types/selection';
 import InfluenceVerifier from '../influence/InfluenceVerifier';
 
 interface ApplicantManagerProps {
@@ -30,10 +31,16 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
   const [sheetConfig, setSheetConfig] = useState<ApplicantSheet | null>(null);
   const [showConfig, setShowConfig] = useState(false);
 
+  // 선정 프로세스 상태
+  const [isProcessingSelection, setIsProcessingSelection] = useState(false);
+  const [selectionResults, setSelectionResults] = useState<SelectionRecord[]>([]);
+  const [showSelectionResults, setShowSelectionResults] = useState(false);
+
   useEffect(() => {
     if (session) {
       loadApplicants();
       loadSyncLogs();
+      loadSelectionResults();
     }
   }, [session]);
 
@@ -125,6 +132,73 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
     }
   };
 
+  // 선정 결과 로드
+  const loadSelectionResults = async () => {
+    try {
+      const response = await axios.get('/api/selection/results');
+      if (response.data.success) {
+        setSelectionResults(response.data.data.results || []);
+      }
+    } catch (error) {
+      console.error('선정 결과 로드 오류:', error);
+    }
+  };
+
+  // 선정 프로세스 실행
+  const runSelectionProcess = async (applicantEmail?: string) => {
+    if (!sheetConfig) {
+      setError('시트 설정이 필요합니다. 먼저 구글시트를 연동해주세요.');
+      return;
+    }
+
+    try {
+      setIsProcessingSelection(true);
+      setError('');
+      setSuccess('');
+
+      const requestData = {
+        sheetConfig,
+        updateSheet: true
+      };
+
+      if (applicantEmail) {
+        (requestData as typeof requestData & { applicantEmail: string }).applicantEmail = applicantEmail;
+      }
+
+      const response = await axios.post('/api/selection/process', requestData);
+
+      if (response.data.success) {
+        const result = response.data.data;
+        setSuccess(
+          `선정 프로세스가 완료되었습니다. 총 ${result.totalProcessed}명 처리 (선정: ${result.selectedCount}명, 비선정: ${result.rejectedCount}명)`
+        );
+        await loadSelectionResults();
+        await loadApplicants();
+      } else {
+        setError(response.data.message || '선정 프로세스 실행 중 오류가 발생했습니다.');
+      }
+    } catch (error: unknown) {
+      console.error('선정 프로세스 오류:', error);
+      const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
+      
+      if (axiosError.response?.status === 401) {
+        setError('구글 인증이 만료되었습니다. 다시 로그인해주세요.');
+        setTimeout(() => {
+          window.location.href = '/api/auth/signin';
+        }, 2000);
+      } else {
+        setError(axiosError.response?.data?.error || '선정 프로세스 실행 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setIsProcessingSelection(false);
+    }
+  };
+
+  // 선정 결과 조회
+  const getSelectionResult = (applicantEmail: string): SelectionRecord | undefined => {
+    return selectionResults.find(result => result.applicantEmail === applicantEmail);
+  };
+
   if (!session) {
     return (
       <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -180,6 +254,28 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
               ) : (
                 '데이터 동기화'
               )}
+            </button>
+
+            <button
+              onClick={() => runSelectionProcess()}
+              disabled={isProcessingSelection || !sheetConfig || applicants.length === 0}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              {isProcessingSelection ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  처리 중...
+                </>
+              ) : (
+                '선정 프로세스'
+              )}
+            </button>
+
+            <button
+              onClick={() => setShowSelectionResults(!showSelectionResults)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              선정 결과 보기
             </button>
           </div>
         </div>
@@ -486,6 +582,9 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                     SNS 계정
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    선정 결과
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -542,6 +641,49 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                           </div>
                         )}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {(() => {
+                        const selectionResult = getSelectionResult(applicant.email);
+                        if (!selectionResult) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                미처리
+                              </span>
+                              <button
+                                onClick={() => runSelectionProcess(applicant.email)}
+                                disabled={isProcessingSelection}
+                                className="text-blue-600 hover:text-blue-800 text-xs underline disabled:text-gray-400"
+                              >
+                                선정 처리
+                              </button>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                selectionResult.isSelected 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {selectionResult.isSelected ? '선정' : '비선정'}
+                              </span>
+                              {selectionResult.qualifyingPlatforms.length > 0 && (
+                                <span className="text-xs text-gray-500">
+                                  ({selectionResult.qualifyingPlatforms.join(', ')})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 max-w-xs truncate" title={selectionResult.selectionReason}>
+                              {selectionResult.selectionReason}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
@@ -654,6 +796,138 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
                   setSuccess(`${selectedApplicant.name}님의 영향력 검증이 완료되었습니다.`);
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 선정 결과 모달 */}
+      {showSelectionResults && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">
+                선정/비선정 결과 ({selectionResults.length}명)
+              </h3>
+              <button
+                onClick={() => setShowSelectionResults(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {selectionResults.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500">선정 결과가 없습니다.</p>
+                  <p className="text-sm text-gray-400 mt-2">선정 프로세스를 실행하여 결과를 생성하세요.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* 통계 요약 */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {selectionResults.length}
+                      </div>
+                      <div className="text-sm text-blue-700">총 처리</div>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {selectionResults.filter(r => r.isSelected).length}
+                      </div>
+                      <div className="text-sm text-green-700">선정</div>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">
+                        {selectionResults.filter(r => !r.isSelected).length}
+                      </div>
+                      <div className="text-sm text-red-700">비선정</div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {selectionResults.length > 0 ? Math.round((selectionResults.filter(r => r.isSelected).length / selectionResults.length) * 100) : 0}%
+                      </div>
+                      <div className="text-sm text-purple-700">선정률</div>
+                    </div>
+                  </div>
+
+                  {/* 결과 목록 */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            신청자
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            결과
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            충족 플랫폼
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            사유
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            처리일시
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {selectionResults.map((result) => (
+                          <tr key={result.applicantEmail} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{result.applicantName}</div>
+                                <div className="text-sm text-gray-500">{result.applicantEmail}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                result.isSelected 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {result.isSelected ? '선정' : '비선정'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {result.qualifyingPlatforms.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {result.qualifyingPlatforms.map((platform, index) => (
+                                    <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                      {platform}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">없음</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">
+                              <div className="max-w-xs truncate" title={result.selectionReason}>
+                                {result.selectionReason}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(result.selectionDate).toLocaleString('ko-KR')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

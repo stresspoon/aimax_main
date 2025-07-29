@@ -38,8 +38,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // campaignId가 없으면 기본값 생성 (사용자 이메일 기반)
-    const finalCampaignId = campaignId || `default_${session.user.email}`;
+    // 사용자의 기본 캠페인 생성 또는 조회
+    let finalCampaignId = campaignId;
+    
+    if (!finalCampaignId) {
+      const { findOrCreateUser, findOrCreateDefaultCampaign } = await import('@/lib/userUtils');
+      
+      const user = await findOrCreateUser(session);
+      finalCampaignId = await findOrCreateDefaultCampaign(user.id, sheetConfig);
+    }
 
     const processOptions = {
       sheetConfig: sheetConfig as ApplicantSheet,

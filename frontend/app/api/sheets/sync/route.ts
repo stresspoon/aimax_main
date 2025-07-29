@@ -38,8 +38,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 시트 동기화 실행
-    // TODO: Get campaignId from request body or user context
-    const campaignId = 'default'; // Temporary
+    // 사용자의 기본 캠페인 생성 또는 조회
+    const { findOrCreateUser, findOrCreateDefaultCampaign } = await import('@/lib/userUtils');
+    
+    const user = await findOrCreateUser(session);
+    const campaignId = await findOrCreateDefaultCampaign(user.id, sheetConfig);
+    
     const sheetsSync = new SheetsSync(accessToken, campaignId);
     const syncResult = await sheetsSync.syncApplicants(sheetConfig as ApplicantSheet);
 

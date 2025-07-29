@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { MemoryStorage } from '@/lib/memoryStorage';
+import { DatabaseService } from '@/lib/database';
 
 // 신청자 목록 조회
 export async function GET() {
@@ -15,7 +15,8 @@ export async function GET() {
       );
     }
 
-    const applicants = await MemoryStorage.getAllApplicants();
+    // TODO: Get campaignId from query params or user context
+    const applicants = await DatabaseService.getAllApplicants();
 
     return NextResponse.json({
       success: true,
@@ -53,7 +54,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const existingApplicant = await MemoryStorage.getApplicantByEmail(email);
+    const existingApplicant = await DatabaseService.getApplicantByEmail(email);
     if (!existingApplicant) {
       return NextResponse.json(
         { error: '해당 신청자를 찾을 수 없습니다.' },
@@ -67,7 +68,9 @@ export async function PUT(request: NextRequest) {
       notes: notes || existingApplicant.notes,
     };
 
-    const result = await MemoryStorage.upsertApplicant(updatedApplicant);
+    // TODO: Get campaignId from context
+    const campaignId = 'default'; // Temporary
+    const result = await DatabaseService.upsertApplicant(updatedApplicant, campaignId);
 
     return NextResponse.json({
       success: true,

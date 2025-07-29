@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 시트 동기화 실행
-    const sheetsSync = new SheetsSync(accessToken);
+    // TODO: Get campaignId from request body or user context
+    const campaignId = 'default'; // Temporary
+    const sheetsSync = new SheetsSync(accessToken, campaignId);
     const syncResult = await sheetsSync.syncApplicants(sheetConfig as ApplicantSheet);
 
     return NextResponse.json({
@@ -76,8 +78,8 @@ export async function GET() {
       );
     }
 
-    const { MemoryStorage } = await import('@/lib/memoryStorage');
-    const logs = await MemoryStorage.getSyncLogs();
+    const { DatabaseService } = await import('@/lib/database');
+    const logs = await DatabaseService.getSyncLogs();
 
     return NextResponse.json({
       success: true,

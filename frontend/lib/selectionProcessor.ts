@@ -5,7 +5,7 @@
 import { SelectionService, SelectionResult } from './selectionService';
 import { SelectionStorage } from './selectionStorage';
 import { SheetResultUpdater, SheetUpdateResult } from './sheetResultUpdater';
-import { MemoryStorage } from './memoryStorage';
+import { DatabaseService } from './database';
 import { Applicant, ApplicantSheet } from '@/types/applicant';
 import { InfluenceVerification } from '@/types/influence';
 import { SelectionRecord, SelectionBatchProcess } from '@/types/selection';
@@ -13,6 +13,7 @@ import { SelectionRecord, SelectionBatchProcess } from '@/types/selection';
 export interface ProcessSelectionOptions {
   sheetConfig: ApplicantSheet;
   accessToken: string;
+  campaignId: string; // PostgreSQL 캠페인 ID 추가
   updateSheet?: boolean; // 구글시트 업데이트 여부 (기본값: true)
   sendNotification?: boolean; // 알림 발송 여부 (기본값: false, 향후 구현)
 }
@@ -55,7 +56,7 @@ export class SelectionProcessor {
 
     try {
       // 1. 모든 신청자 조회
-      const applicants = await MemoryStorage.getAllApplicants();
+      const applicants = await DatabaseService.getAllApplicants(options.campaignId);
       batchProcess.totalApplicants = applicants.length;
       await SelectionStorage.saveBatchProcess(batchProcess);
 
@@ -80,7 +81,7 @@ export class SelectionProcessor {
       
       // 4. 선정 결과를 DB에 저장
       const selectionRecords = await this.createSelectionRecords(applicants, selectionResults);
-      const saveResult = await SelectionStorage.saveBatchSelectionResults(selectionRecords);
+      const saveResult = await this.saveBatchSelectionResults(selectionRecords, options.campaignId);
       
       // 5. 구글시트 업데이트 (옵션)
       let sheetUpdateResult: SheetUpdateResult | undefined;
@@ -148,7 +149,7 @@ export class SelectionProcessor {
   ): Promise<ProcessSelectionResult> {
     try {
       // 1. 신청자 정보 조회
-      const applicant = await MemoryStorage.getApplicantByEmail(applicantEmail);
+      const applicant = await DatabaseService.getApplicantByEmail(applicantEmail, options.campaignId);
       if (!applicant) {
         return {
           success: false,
@@ -171,7 +172,7 @@ export class SelectionProcessor {
 
       // 4. 선정 결과 저장
       const selectionRecord = await this.createSelectionRecord(applicant, selectionResult);
-      await SelectionStorage.saveSelectionResult(selectionRecord);
+      await DatabaseService.saveSelectionResult(selectionRecord, options.campaignId);
 
       // 5. 구글시트 업데이트
       let sheetUpdateResult: SheetUpdateResult | undefined;
@@ -312,15 +313,7 @@ export class SelectionProcessor {
         updates
       }, sheetConfig);
 
-      // 성공한 경우 SelectionRecord의 sheetUpdated 플래그 업데이트
-      if (result.success) {
-        for (const record of selectionRecords) {
-          await SelectionStorage.updateSelectionResult(record.applicantEmail, {
-            sheetUpdated: true,
-            sheetUpdateDate: new Date().toISOString()
-          });
-        }
-      }
+      // 성공한 경우 SelectionRecord의 sheetUpdated 플래그 업데이트는 DatabaseService에서 처리
 
       return result;
     } catch (error) {
@@ -332,6 +325,28 @@ export class SelectionProcessor {
         updatedAt: new Date().toISOString()
       };
     }
+  }
+
+  /**
+   * 배치 선정 결과 저장
+   */
+  private async saveBatchSelectionResults(
+    selectionRecords: SelectionRecord[],
+    campaignId: string
+  ): Promise<{ errors: string[] }> {
+    const errors: string[] = [];
+
+    for (const record of selectionRecords) {
+      try {
+        await DatabaseService.saveSelectionResult(record, campaignId);
+      } catch (error) {
+        const errorMessage = `${record.applicantEmail}: ${error instanceof Error ? error.message : '저장 실패'}`;
+        errors.push(errorMessage);
+        console.error('선정 결과 저장 오류:', errorMessage);
+      }
+    }
+
+    return { errors };
   }
 
   /**

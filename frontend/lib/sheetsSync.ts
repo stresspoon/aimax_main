@@ -4,14 +4,16 @@
 
 import { google } from 'googleapis';
 import { Applicant, SyncResult, SheetDataRow, ApplicantSheet, SNSProfile } from '@/types/applicant';
-import { MemoryStorage } from './memoryStorage';
+import { DatabaseService } from './database';
 
 export class SheetsSync {
   private accessToken: string;
   private sheets: ReturnType<typeof google.sheets>;
+  private campaignId: string;
 
-  constructor(accessToken: string) {
+  constructor(accessToken: string, campaignId: string = 'default') {
     this.accessToken = accessToken;
+    this.campaignId = campaignId;
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
     this.sheets = google.sheets({ version: 'v4', auth });
@@ -70,7 +72,7 @@ export class SheetsSync {
             continue;
           }
 
-          const upsertResult = await MemoryStorage.upsertApplicant(applicant);
+          const upsertResult = await DatabaseService.upsertApplicant(applicant, this.campaignId);
           
           if (upsertResult.isNew) {
             result.newApplicants++;
@@ -85,13 +87,13 @@ export class SheetsSync {
       result.success = result.errors.length === 0 || (result.newApplicants + result.updatedApplicants) > 0;
 
       // 동기화 결과 로그 저장
-      await MemoryStorage.logSyncResult(result);
+      await DatabaseService.logSyncResult(result);
 
       return result;
 
     } catch (error) {
       result.errors.push(`동기화 오류: ${error}`);
-      await MemoryStorage.logSyncResult(result);
+      await DatabaseService.logSyncResult(result);
       return result;
     }
   }

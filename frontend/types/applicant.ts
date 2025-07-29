@@ -7,6 +7,8 @@ export interface SNSProfile {
   url: string;
   handle?: string;
   followers?: number;
+  visitors?: number;
+  isValid?: boolean;
 }
 
 export interface Applicant {

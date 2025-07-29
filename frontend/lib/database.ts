@@ -282,30 +282,40 @@ export class DatabaseService {
     }
   ): Promise<string> {
     try {
-      const campaign = await prisma.campaign.upsert({
+      // 기존 캠페인 찾기
+      const existingCampaign = await prisma.campaign.findFirst({
         where: {
-          userId_name: {
-            userId,
-            name: campaignData.name,
-          },
-        },
-        update: {
-          description: campaignData.description,
-          sheetId: campaignData.sheetId,
-          sheetName: campaignData.sheetName,
-          sheetUrl: campaignData.sheetUrl,
-        },
-        create: {
           userId,
           name: campaignData.name,
-          description: campaignData.description,
-          sheetId: campaignData.sheetId,
-          sheetName: campaignData.sheetName,
-          sheetUrl: campaignData.sheetUrl,
         },
       });
 
-      return campaign.id;
+      if (existingCampaign) {
+        // 기존 캠페인 업데이트
+        const campaign = await prisma.campaign.update({
+          where: { id: existingCampaign.id },
+          data: {
+            description: campaignData.description,
+            sheetId: campaignData.sheetId,
+            sheetName: campaignData.sheetName,
+            sheetUrl: campaignData.sheetUrl,
+          },
+        });
+        return campaign.id;
+      } else {
+        // 새 캠페인 생성
+        const campaign = await prisma.campaign.create({
+          data: {
+            userId,
+            name: campaignData.name,
+            description: campaignData.description,
+            sheetId: campaignData.sheetId,
+            sheetName: campaignData.sheetName,
+            sheetUrl: campaignData.sheetUrl,
+          },
+        });
+        return campaign.id;
+      }
     } catch (error) {
       console.error('캠페인 생성/업데이트 오류:', error);
       throw new Error('캠페인 처리 실패');

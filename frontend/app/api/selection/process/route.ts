@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // 요청 데이터 파싱
     const body = await request.json();
-    const { sheetConfig, applicantEmail, updateSheet = true } = body;
+    const { sheetConfig, applicantEmail, updateSheet = true, campaignId } = body;
 
     // sheetConfig 유효성 검증
     if (!sheetConfig || !sheetConfig.sheetId || !sheetConfig.sheetName) {
@@ -38,9 +38,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // campaignId가 없으면 기본값 생성 (사용자 이메일 기반)
+    const finalCampaignId = campaignId || `default_${session.user.email}`;
+
     const processOptions = {
       sheetConfig: sheetConfig as ApplicantSheet,
       accessToken,
+      campaignId: finalCampaignId,
       updateSheet,
       sendNotification: false // 향후 구현
     };

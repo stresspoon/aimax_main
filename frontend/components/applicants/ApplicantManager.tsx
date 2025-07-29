@@ -86,8 +86,18 @@ export default function ApplicantManager({ connectedSheet }: ApplicantManagerPro
 
     } catch (error: unknown) {
       console.error('동기화 오류:', error);
-      const axiosError = error as { response?: { data?: { error?: string } } };
-      setError(axiosError.response?.data?.error || '동기화 중 오류가 발생했습니다.');
+      const axiosError = error as { response?: { data?: { error?: string }; status?: number } };
+      
+      // 401 인증 오류 처리
+      if (axiosError.response?.status === 401) {
+        setError('구글 인증이 만료되었습니다. 다시 로그인해주세요.');
+        // 2초 후 재로그인 유도
+        setTimeout(() => {
+          window.location.href = '/api/auth/signin';
+        }, 2000);
+      } else {
+        setError(axiosError.response?.data?.error || '동기화 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsSyncing(false);
     }

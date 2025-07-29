@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('시트 동기화 오류:', error);
+    const errorObj = error as { code?: number; status?: number };
+    
+    if (errorObj.code === 401 || errorObj.status === 401) {
+      return NextResponse.json(
+        { error: '구글 인증이 만료되었습니다. 다시 로그인해주세요.' },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { error: '시트 동기화 중 오류가 발생했습니다.' },
       { status: 500 }

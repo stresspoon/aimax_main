@@ -85,7 +85,14 @@ export async function POST(request: NextRequest) {
 
     } catch (sheetsError: unknown) {
       console.error('Google Sheets API 오류:', sheetsError);
-      const error = sheetsError as { code?: number };
+      const error = sheetsError as { code?: number; status?: number };
+
+      if (error.code === 401 || error.status === 401) {
+        return NextResponse.json(
+          { error: '구글 인증이 만료되었습니다. 다시 로그인해주세요.' },
+          { status: 401 }
+        );
+      }
 
       if (error.code === 403) {
         return NextResponse.json(

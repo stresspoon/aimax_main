@@ -31,7 +31,10 @@
       "WebFetch(domain:aimax-main-6mfuho2ur-minsoos-projects-463887d4.vercel.app)",
       "Bash(claude mcp add:*)",
       "Bash(ls:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(mv:*)",
+      "Bash(diff:*)",
+      "Bash(tree:*)"
     ],
     "deny": []
   }

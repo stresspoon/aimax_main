@@ -27,6 +27,9 @@ model User {
   // 사용자가 관리하는 캠페인/브랜드
   campaigns Campaign[]
 
+  // 이메일 템플릿
+  emailTemplates EmailTemplate[]
+
   @@map("users")
 }
 
@@ -83,6 +86,8 @@ model Campaign {
   applicants       Applicant[]
   selectionResults SelectionResult[]
   mailHistories    MailHistory[]
+  emailTemplates   EmailTemplate[]
+  emailSchedules   EmailSchedule[]
 
   @@map("campaigns")
 }
@@ -112,6 +117,9 @@ model Applicant {
 
   // 메일 발송 이력
   mailHistories MailHistory[]
+
+  // 메일 스케줄
+  emailSchedules EmailSchedule[]
 
   @@unique([campaignId, email])
   @@map("applicants")
@@ -180,6 +188,9 @@ model MailHistory {
   sentAt      DateTime?
   failReason  String?
   scheduledAt DateTime?
+  templateId  String?    // 사용된 템플릿 ID (선택적)
+  variables   Json?      // 템플릿 변수들
+  messageId   String?    // SMTP 메시지 ID
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -190,6 +201,9 @@ model MailHistory {
   // 캠페인 연결
   campaignId String
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // 템플릿 연결 (선택적)
+  template EmailTemplate? @relation(fields: [templateId], references: [id])
 
   @@map("mail_histories")
 }
@@ -205,6 +219,59 @@ model SyncLog {
   createdAt        DateTime @default(now())
 
   @@map("sync_logs")
+}
+
+// 메일 템플릿 모델
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   // 템플릿 이름
+  type        TemplateType // 템플릿 유형
+  subject     String   // 메일 제목 템플릿
+  htmlContent String   @db.Text // HTML 내용
+  textContent String?  @db.Text // 텍스트 내용 (선택적)
+  variables   Json     // 사용 가능한 변수 목록
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false) // 기본 템플릿 여부
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 캠페인 연결
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // 사용자 연결
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 메일 발송 이력
+  mailHistories MailHistory[]
+
+  @@unique([campaignId, type, isDefault]) // 캠페인별 기본 템플릿은 유형당 하나만
+  @@map("email_templates")
+}
+
+// 메일 스케줄 모델
+model EmailSchedule {
+  id              String         @id @default(cuid())
+  scheduledAt     DateTime       // 발송 예정 시간
+  status          ScheduleStatus @default(PENDING)
+  mailType        MailType       // 발송할 메일 유형
+  processedAt     DateTime?      // 처리 완료 시간
+  errorMessage    String?        // 오류 메시지
+  retryCount      Int           @default(0)
+  maxRetries      Int           @default(3)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // 신청자 연결
+  applicantId String
+  applicant   Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  // 캠페인 연결
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("email_schedules")
 }
 
 // Enum 정의
@@ -238,4 +305,20 @@ enum MailStatus {
   SENT
   FAILED
   SCHEDULED
+}
+
+enum TemplateType {
+  SELECTION_NOTIFICATION
+  REJECTION_NOTIFICATION
+  FOLLOW_UP
+  REMINDER
+  CUSTOM
+}
+
+enum ScheduleStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

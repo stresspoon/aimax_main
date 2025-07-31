@@ -36,7 +36,9 @@
       "Bash(diff:*)",
       "Bash(tree:*)",
       "Bash(nslookup:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "mcp__vooster-ai__list_projects",
+      "Bash(npm run test-db:*)"
     ],
     "deny": []
   }

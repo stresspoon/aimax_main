@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Aimax Extension",
+  "version": "1.0",
+  "description": "Google Sheets 동기화 확장프로그램",
+  
+  "permissions": [
+    "identity",
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  
+  "host_permissions": [
+    "https://sheets.googleapis.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  
+  "oauth2": {
+    "client_id": "164825154871-spqun3vkh0ifipri685a460dcp620hj0.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile", 
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [{
+    "matches": ["https://docs.google.com/*"],
+    "js": ["content.js"],
+    "run_at": "document_end"
+  }],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Aimax"
+  },
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://sheets.googleapis.com https://www.googleapis.com https://accounts.google.com;"
+  }
+}

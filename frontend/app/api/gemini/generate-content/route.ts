@@ -91,16 +91,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payload: any = {
-      title: content.title,
-      content: content.content,
-      summary: content.summary,
-      tags: content.tags,
-      imagePrompts: Array.isArray(content.image_prompts) ? content.image_prompts : []
+    interface ContentPayload {
+      title: string;
+      content: string;
+      summary: string;
+      tags: string[];
+      imagePrompts: string[];
+      reservePublishAt?: string;
+    }
+    const payload: ContentPayload = {
+      title: content.title as string,
+      content: content.content as string,
+      summary: content.summary as string,
+      tags: content.tags as string[],
+      imagePrompts: Array.isArray(content.image_prompts) ? (content.image_prompts as string[]) : []
     };
 
     // 예약발행 옵션을 프론트로 전달(서버 스케줄링은 별도 엔드포인트에서 처리)
-    if (reservePublishAt) {
+    if (typeof reservePublishAt === 'string') {
       payload.reservePublishAt = reservePublishAt;
     }
 

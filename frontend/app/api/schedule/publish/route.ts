@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 필드가 누락되었습니다.' }, { status: 400 });
     }
 
-    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36');
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     await page.type('#id', id, { delay: 20 });
     await page.type('#pw', password, { delay: 20 });
     await page.click('#log\.login');
-    await page.waitForTimeout(2000);
+    await new Promise((r) => setTimeout(r, 2000));
 
     // 블로그 글쓰기 페이지로 이동
     await page.goto('https://blog.naver.com/PostWriteForm.naver', { waitUntil: 'networkidle2' });
@@ -110,19 +110,19 @@ export async function POST(request: NextRequest) {
       try {
         // 예: 옵션 버튼 클릭 → 예약 체크 → 날짜 입력 → 확인
         await page.click("button[aria-label='발행 옵션']");
-        await page.waitForTimeout(500);
+        await new Promise((r) => setTimeout(r, 500));
         await page.click("input[type='radio'][value='reserve']");
-        await page.waitForTimeout(500);
+        await new Promise((r) => setTimeout(r, 500));
         // 단순히 값 입력(실제 네이버 UI 포맷에 맞춰야 함)
         await page.type("input[name='reserveDateTime']", reserveAt);
-        await page.waitForTimeout(300);
+        await new Promise((r) => setTimeout(r, 300));
         await page.click("button[type='submit']");
       } catch (e) {
         console.warn('예약 발행 UI 조작 실패, 에디터 버전과 셀렉터 확인 필요:', e);
       }
     }
 
-    await page.waitForTimeout(1500);
+    await new Promise((r) => setTimeout(r, 1500));
     await browser.close();
     return NextResponse.json({ success: true });
   } catch (error) {

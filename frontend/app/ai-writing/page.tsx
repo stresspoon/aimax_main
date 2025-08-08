@@ -202,7 +202,14 @@ export default function AIWriting() {
         goal: step1Data.goal
       });
 
-      const { title, content, summary, tags, imagePrompts } = response.data as any;
+      interface GenerateContentResponse {
+        title: string;
+        content: string;
+        summary: string;
+        tags: string[];
+        imagePrompts?: string[];
+      }
+      const { title, content, summary, tags, imagePrompts } = response.data as GenerateContentResponse;
       
       // 콘텐츠 설정
       setGeneratedContent({
@@ -219,8 +226,8 @@ export default function AIWriting() {
           const imgResp = await axios.post('/api/gemini/generate-image', { prompts: imagePrompts, model: step1Data.model });
           // 현재는 UI 반영 최소화: 콘솔로만 확인
           console.log('이미지 캡션/ALT:', imgResp.data);
-        } catch (e) {
-          console.warn('이미지 캡션/ALT 생성 실패', e);
+        } catch (imgErr) {
+          console.warn('이미지 캡션/ALT 생성 실패', imgErr);
         }
       }
       
@@ -830,7 +837,7 @@ function ReservePublishSection({ content, title }: { content: string; title: str
         reserveAt: publishType === 'reserve' ? reserveAt : undefined
       });
       alert('발행 요청이 처리되었습니다.');
-    } catch (e) {
+    } catch {
       alert('발행 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -840,6 +847,8 @@ function ReservePublishSection({ content, title }: { content: string; title: str
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-text mb-4">네이버 블로그 예약발행</h3>
+      { /* 타입 안전한 발행 옵션 */ }
+      {/* 타입 관련 주석 제거: 추가 ts-주석 불필요 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-text mb-2">네이버 ID</label>
@@ -851,8 +860,8 @@ function ReservePublishSection({ content, title }: { content: string; title: str
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-        {['draft','immediate','reserve'].map((p) => (
-          <button key={p} type="button" onClick={() => setPublishType(p as any)} className={`p-3 border rounded-lg ${publishType===p?'border-text bg-text/5':'border-gray-300'}`}>{p==='draft'?'임시저장':p==='immediate'?'즉시발행':'예약발행'}</button>
+        {(['draft','immediate','reserve'] as const).map((p) => (
+          <button key={p} type="button" onClick={() => setPublishType(p)} className={`p-3 border rounded-lg ${publishType===p?'border-text bg-text/5':'border-gray-300'}`}>{p==='draft'?'임시저장':p==='immediate'?'즉시발행':'예약발행'}</button>
         ))}
       </div>
       {publishType === 'reserve' && (

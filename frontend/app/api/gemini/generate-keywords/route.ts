@@ -104,8 +104,9 @@ export async function POST(request: NextRequest) {
           const series = Array.isArray(trendJson?.results) ? trendJson.results : [];
           const scoreMap: Record<string, number> = {};
           for (const item of series) {
-            const data = Array.isArray(item?.data) ? item.data.slice(-7) : [];
-            const avg = data.reduce((s: number, d: any) => s + (Number(d.ratio) || 0), 0) / (data.length || 1);
+            type TrendPoint = { period: string; ratio: number };
+            const data: TrendPoint[] = Array.isArray(item?.data) ? item.data.slice(-7) : [];
+            const avg = data.reduce((sum: number, d: TrendPoint) => sum + (Number(d.ratio) || 0), 0) / (data.length || 1);
             const key = String(item.title || item.groupName || '').trim();
             if (key) scoreMap[key] = avg;
           }

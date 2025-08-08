@@ -5,6 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import { AuthGuard } from '../../components/auth/AuthGuard';
 import { LoginButton } from '../../components/auth/LoginButton';
+import BlogPublishModal from '@/components/BlogPublishModal';
 
 interface Step1Data {
   topic: string;
@@ -810,69 +811,37 @@ function markdownToHtml(markdown: string): string {
 }
 
 function ReservePublishSection({ content, title }: { content: string; title: string }) {
-  const [id, setId] = useState('');
-  const [password, setPassword] = useState('');
-  const [publishType, setPublishType] = useState<'draft' | 'immediate' | 'reserve'>('reserve');
-  const [reserveAt, setReserveAt] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const contentHtml = useMemo(() => markdownToHtml(content), [content]);
 
-  const handleSchedule = async () => {
-    if (!id || !password) {
-      alert('네이버 ID와 비밀번호를 입력해주세요.');
-      return;
-    }
-    if (publishType === 'reserve' && !reserveAt) {
-      alert('예약 시간을 입력해주세요.');
-      return;
-    }
-    setLoading(true);
-    try {
-      await axios.post('/api/schedule/publish', {
-        id,
-        password,
-        title,
-        contentHtml,
-        publishType,
-        reserveAt: publishType === 'reserve' ? reserveAt : undefined
-      });
-      alert('발행 요청이 처리되었습니다.');
-    } catch {
-      alert('발행 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-text mb-4">네이버 블로그 예약발행</h3>
-      { /* 타입 안전한 발행 옵션 */ }
-      {/* 타입 관련 주석 제거: 추가 ts-주석 불필요 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-text mb-2">네이버 ID</label>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={id} onChange={e => setId(e.target.value)} />
+    <>
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-text mb-4">네이버 블로그 발행</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          네이버 블로그에 작성한 콘텐츠를 발행할 수 있습니다.
+          자동 발행이 실패할 경우 수동 복사/붙여넣기 방식을 이용하세요.
+        </p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-yellow-800">
+            <strong>중요:</strong> Vercel 서버리스 환경의 제한으로 자동 발행이 불안정할 수 있습니다.
+            수동 발행 방식을 권장합니다.
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-text mb-2">네이버 비밀번호</label>
-          <input type="password" className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={password} onChange={e => setPassword(e.target.value)} />
-        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="w-full bg-text text-white px-4 py-3 rounded-lg font-medium hover:bg-text/90"
+        >
+          네이버 블로그 발행 설정
+        </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-        {(['draft','immediate','reserve'] as const).map((p) => (
-          <button key={p} type="button" onClick={() => setPublishType(p)} className={`p-3 border rounded-lg ${publishType===p?'border-text bg-text/5':'border-gray-300'}`}>{p==='draft'?'임시저장':p==='immediate'?'즉시발행':'예약발행'}</button>
-        ))}
-      </div>
-      {publishType === 'reserve' && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-text mb-2">예약 시간(ISO, 예: 2025-08-10T10:00)</label>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={reserveAt} onChange={e => setReserveAt(e.target.value)} />
-        </div>
-      )}
-      <div className="mt-4 text-right">
-        <button onClick={handleSchedule} disabled={loading} className="bg-text text-white px-4 py-2 rounded-lg font-medium hover:bg-text/90 disabled:bg-gray-400">{loading?'처리 중...':'발행 요청'}</button>
-      </div>
-    </div>
+      
+      <BlogPublishModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={title}
+        content={contentHtml}
+      />
+    </>
   );
 }

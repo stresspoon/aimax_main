@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
-import puppeteer from 'puppeteer';
+export const maxDuration = 60;
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
 interface PublishPayload {
   id: string;
@@ -20,7 +22,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 필드가 누락되었습니다.' }, { status: 400 });
     }
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const isLocal = !process.env.VERCEL;
+    const executablePath = isLocal
+      ? undefined
+      : await chromium.executablePath();
+    const browser = await puppeteer.launch({
+      args: isLocal ? ['--no-sandbox', '--disable-setuid-sandbox'] : chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
+      headless: true,
+    });
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36');
 

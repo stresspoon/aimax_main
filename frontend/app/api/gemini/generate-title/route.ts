@@ -5,9 +5,16 @@ import { getTitleGuideline } from '@/utils/contentGuidelines';
 export async function POST(request: NextRequest) {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   
+  console.log('[Generate Title API] Request received');
+  console.log('[Generate Title API] GEMINI_API_KEY exists:', !!GEMINI_API_KEY);
+  
   if (!GEMINI_API_KEY) {
+    console.error('[Generate Title API] GEMINI_API_KEY is not configured in environment');
     return NextResponse.json(
-      { error: 'GEMINI_API_KEY is not configured' },
+      { 
+        error: 'GEMINI_API_KEY is not configured',
+        message: 'API 키가 설정되지 않았습니다. Vercel 환경변수를 확인하세요.' 
+      },
       { status: 500 }
     );
   }
@@ -26,6 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     const modelId = String(modelName || '').startsWith('gemini') ? modelName : 'gemini-2.5-pro';
+    console.log('[Generate Title API] Using model:', modelId);
     const model = genAI.getGenerativeModel({ model: modelId });
 
     const guideline = getTitleGuideline(contentType, topic, []);
@@ -47,12 +55,15 @@ export async function POST(request: NextRequest) {
       { "titles": ["제목1", "제목2", "제목3"] }
     `;
 
+    console.log('[Generate Title API] Generating content...');
     const result = await Promise.race([
       model.generateContent(prompt),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timeout')), 30000)
       )
     ]) as Awaited<ReturnType<typeof model.generateContent>>;
+    
+    console.log('[Generate Title API] Content generated successfully');
 
     const response = result.response;
     const text = response.text().trim();
@@ -74,13 +85,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('[Generate Title API] Returning', titles.length, 'titles');
     return NextResponse.json({ titles, modelUsed: modelId });
 
   } catch (error) {
+    console.error('[Generate Title API] Error occurred:', error);
     
-    console.error('제목 생성 오류:', error);
+    let errorMessage = '제목 생성 중 오류가 발생했습니다.';
+    let errorDetails = '';
+    
+    if (error instanceof Error) {
+      errorDetails = error.message;
+      if (error.message.includes('API key')) {
+        errorMessage = 'Gemini API 키 오류';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = '요청 시간 초과';
+      }
+    }
+    
     return NextResponse.json(
-      { error: '제목 생성 중 오류가 발생했습니다.' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+      },
       { status: 500 }
     );
   }

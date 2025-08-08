@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+
+let chromium: any;
+let puppeteer: any;
+
+// Dynamic imports to handle serverless environments
+if (process.env.VERCEL) {
+  chromium = require('@sparticuz/chromium');
+  puppeteer = require('puppeteer-core');
+} else {
+  // For local development, use puppeteer directly
+  puppeteer = require('puppeteer-core');
+}
 
 interface PublishPayload {
   id: string;
@@ -14,33 +24,92 @@ interface PublishPayload {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Publish API] Request received');
+  
   try {
     const body = (await request.json()) as PublishPayload;
     const { id, password, title, contentHtml, publishType, reserveAt } = body;
+    
+    console.log('[Publish API] Payload received:', {
+      hasId: !!id,
+      hasPassword: !!password,
+      hasTitle: !!title,
+      contentLength: contentHtml?.length || 0,
+      publishType,
+      reserveAt
+    });
 
     if (!id || !password || !title || !contentHtml || !publishType) {
       return NextResponse.json({ error: '필수 필드가 누락되었습니다.' }, { status: 400 });
     }
 
-    const isLocal = !process.env.VERCEL;
-    const executablePath = isLocal
-      ? undefined
-      : await chromium.executablePath();
-    const browser = await puppeteer.launch({
-      args: isLocal ? ['--no-sandbox', '--disable-setuid-sandbox'] : chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: true,
-    });
+    console.log('[Publish API] Launching browser...');
+    
+    let browser;
+    try {
+      if (process.env.VERCEL) {
+        // Vercel serverless environment
+        console.log('[Publish API] Running on Vercel, using @sparticuz/chromium');
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        });
+      } else {
+        // Local development
+        console.log('[Publish API] Running locally');
+        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+          '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        browser = await puppeteer.launch({
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          executablePath,
+          headless: false, // Set to true for production
+        });
+      }
+    } catch (browserError) {
+      console.error('[Publish API] Browser launch failed:', browserError);
+      return NextResponse.json(
+        { error: '브라우저 실행 실패. Chromium 설정을 확인하세요.' },
+        { status: 500 }
+      );
+    }
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36');
 
     // 로그인
-    await page.goto('https://nid.naver.com/nidlogin.login', { waitUntil: 'networkidle2' });
-    await page.type('#id', id, { delay: 20 });
-    await page.type('#pw', password, { delay: 20 });
-    await page.click('#log\.login');
-    await new Promise((r) => setTimeout(r, 2000));
+    console.log('[Publish API] Navigating to Naver login page...');
+    try {
+      await page.goto('https://nid.naver.com/nidlogin.login', { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+      
+      console.log('[Publish API] Entering credentials...');
+      await page.type('#id', id, { delay: 20 });
+      await page.type('#pw', password, { delay: 20 });
+      await page.click('#log\.login');
+      await new Promise((r) => setTimeout(r, 3000));
+      
+      // Check if login was successful
+      const currentUrl = page.url();
+      console.log('[Publish API] Current URL after login:', currentUrl);
+      
+      if (currentUrl.includes('nidlogin')) {
+        console.error('[Publish API] Login may have failed');
+        // Take screenshot for debugging
+        if (process.env.NODE_ENV === 'development') {
+          await page.screenshot({ path: 'login-error.png' });
+        }
+      }
+    } catch (loginError) {
+      console.error('[Publish API] Login failed:', loginError);
+      await browser.close();
+      return NextResponse.json(
+        { error: '네이버 로그인 실패. 아이디와 비밀번호를 확인하세요.' },
+        { status: 401 }
+      );
+    }
 
     // 블로그 글쓰기 페이지로 이동
     await page.goto('https://blog.naver.com/PostWriteForm.naver', { waitUntil: 'networkidle2' });
@@ -77,7 +146,7 @@ export async function POST(request: NextRequest) {
     for (const sel of editorSelectors) {
       const el = await page.$(sel);
       if (el) {
-        await page.evaluate((selector, html) => {
+        await page.evaluate((selector: string, html: string) => {
           const node = document.querySelector(selector) as HTMLElement | null;
           if (node) node.innerHTML = html;
         }, sel, contentHtml);
@@ -135,10 +204,19 @@ export async function POST(request: NextRequest) {
 
     await new Promise((r) => setTimeout(r, 1500));
     await browser.close();
-    return NextResponse.json({ success: true });
+    
+    console.log('[Publish API] Process completed successfully');
+    return NextResponse.json({ success: true, message: `${publishType} 처리 완료` });
   } catch (error) {
-    console.error('예약발행 처리 오류:', error);
-    return NextResponse.json({ error: '예약발행 처리 중 오류가 발생했습니다.' }, { status: 500 });
+    console.error('[Publish API] Error occurred:', error);
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+    return NextResponse.json(
+      { 
+        error: '예약발행 처리 중 오류가 발생했습니다.',
+        details: errorMessage 
+      }, 
+      { status: 500 }
+    );
   }
 }
 

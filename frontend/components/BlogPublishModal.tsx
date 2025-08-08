@@ -191,8 +191,8 @@ export default function BlogPublishModal({
                   <div>
                     <h3 className="font-bold mb-2">수동 발행 가이드</h3>
                     <ol className="list-decimal list-inside space-y-2 text-sm">
-                      <li>{result.instructions.step1}</li>
-                      <li>{result.instructions.step2}</li>
+                      <li>{result.instructions?.step1}</li>
+                      <li>{result.instructions?.step2}</li>
                       <li>아래 내용을 복사하여 붙여넣으세요:</li>
                     </ol>
                     

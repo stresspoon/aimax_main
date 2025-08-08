@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     
     // Vercel 환경에서는 headless 모드 사용
     if (process.env.VERCEL) {
-      chromeOptions.headless();
+      chromeOptions.addArguments('--headless');
       chromeOptions.addArguments('--disable-gpu');
     }
     

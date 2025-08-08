@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Builder, By, Key, until, WebDriver } from 'selenium-webdriver';
+import { Builder, By, until, WebDriver } from 'selenium-webdriver';
 import chrome from 'selenium-webdriver/chrome';
 
 export const runtime = 'nodejs';
@@ -108,11 +108,11 @@ export async function POST(request: NextRequest) {
     // 제목 입력
     console.log('[Selenium Blog API] Entering title...');
     const titleSelectors = [
-      \"[data-placeholder='제목을 입력하세요']\",
+      '[data-placeholder="제목을 입력하세요"]',
       '.se-section-documentTitle',
       '.se-documentTitle',
-      \"div[contenteditable='true'][data-placeholder*='제목']\",
-      'input[placeholder*=\"제목\"]'
+      'div[contenteditable="true"][data-placeholder*="제목"]',
+      'input[placeholder*="제목"]'
     ];
     
     let titleSet = false;
@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
         console.log(`[Selenium Blog API] Title set using selector: ${selector}`);
         break;
       } catch (e) {
-        console.log(`[Selenium Blog API] Title selector ${selector} failed:`, e.message);
+        const error = e as Error;
+        console.log(`[Selenium Blog API] Title selector ${selector} failed:`, error.message);
         continue;
       }
     }
@@ -144,9 +145,9 @@ export async function POST(request: NextRequest) {
     // 본문 입력
     console.log('[Selenium Blog API] Entering content...');
     const contentSelectors = [
-      \"div[contenteditable='true']\",
+      'div[contenteditable="true"]',
       '.se_editView',
-      '.se-component-content[contenteditable=\"true\"]',
+      '.se-component-content[contenteditable="true"]',
       '.se-text-paragraph'
     ];
     
@@ -170,7 +171,8 @@ export async function POST(request: NextRequest) {
         console.log(`[Selenium Blog API] Content set using selector: ${selector}`);
         break;
       } catch (e) {
-        console.log(`[Selenium Blog API] Content selector ${selector} failed:`, e.message);
+        const error = e as Error;
+        console.log(`[Selenium Blog API] Content selector ${selector} failed:`, error.message);
         continue;
       }
     }
@@ -192,9 +194,9 @@ export async function POST(request: NextRequest) {
       // 임시저장
       const tempSaveSelectors = [
         '.save_btn__bzc5B',
-        \"button[aria-label='임시저장']\",
+        'button[aria-label="임시저장"]',
         '.btn_temp_save',
-        \"button:contains('임시저장')\",
+        'button:contains("임시저장")',
         '.publish__temp-save'
       ];
       
@@ -207,15 +209,18 @@ export async function POST(request: NextRequest) {
           console.log(`[Selenium Blog API] Temp save clicked using: ${selector}`);
           break;
         } catch (e) {
-          console.log(`[Selenium Blog API] Temp save selector ${selector} failed:`, e.message);
+          const error = e as Error;
+          console.log(`[Selenium Blog API] Temp save selector ${selector} failed:`, error.message);
           continue;
         }
       }
       
       if (!tempSaved) {
-        console.warn('[Selenium Blog API] Could not find temp save button, trying publish button');
-        // 임시저장 버튼을 찾지 못한 경우 발행 버튼으로 시도
-        publishType === 'immediate';
+        console.warn('[Selenium Blog API] Could not find temp save button');
+        return NextResponse.json(
+          { error: '임시저장 버튼을 찾을 수 없습니다.' },
+          { status: 500 }
+        );
       }
     }
     
@@ -223,9 +228,9 @@ export async function POST(request: NextRequest) {
       // 즉시 발행
       const publishSelectors = [
         '.publish_btn__m9KHH',
-        \"button[aria-label='발행']\",
+        'button[aria-label="발행"]',
         '.btn_register',
-        \"button:contains('발행')\",
+        'button:contains("발행")',
         '.publish__button'
       ];
       
@@ -238,7 +243,8 @@ export async function POST(request: NextRequest) {
           console.log(`[Selenium Blog API] Publish clicked using: ${selector}`);
           break;
         } catch (e) {
-          console.log(`[Selenium Blog API] Publish selector ${selector} failed:`, e.message);
+          const error = e as Error;
+          console.log(`[Selenium Blog API] Publish selector ${selector} failed:`, error.message);
           continue;
         }
       }
@@ -261,7 +267,7 @@ export async function POST(request: NextRequest) {
       try {
         // 발행 옵션 버튼 클릭
         const optionButton = await driver.wait(
-          until.elementLocated(By.css(\"button[aria-label='발행 옵션'], .publish-option-button\")),
+          until.elementLocated(By.css('button[aria-label="발행 옵션"], .publish-option-button')),
           5000
         );
         await optionButton.click();
@@ -269,19 +275,19 @@ export async function POST(request: NextRequest) {
         
         // 예약 발행 선택
         const reserveRadio = await driver.wait(
-          until.elementLocated(By.css(\"input[type='radio'][value='reserve'], .reserve-option\")),
+          until.elementLocated(By.css('input[type="radio"][value="reserve"], .reserve-option')),
           5000
         );
         await reserveRadio.click();
         await driver.sleep(1000);
         
         // 예약 시간 입력 (실제 UI에 따라 조정 필요)
-        const dateTimeInput = await driver.findElement(By.css(\"input[name='reserveDateTime'], .datetime-input\"));
+        const dateTimeInput = await driver.findElement(By.css('input[name="reserveDateTime"], .datetime-input'));
         await dateTimeInput.clear();
         await dateTimeInput.sendKeys(reserveAt);
         
         // 확인 버튼 클릭
-        const confirmButton = await driver.findElement(By.css(\"button[type='submit'], .confirm-button\"));
+        const confirmButton = await driver.findElement(By.css('button[type="submit"], .confirm-button'));
         await confirmButton.click();
         
         console.log('[Selenium Blog API] Reserve publish set successfully');

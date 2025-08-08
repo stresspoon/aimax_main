@@ -22,7 +22,25 @@ export default function BlogPublishModal({
   const [naverId, setNaverId] = useState('');
   const [naverPw, setNaverPw] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message?: string;
+    method?: string;
+    error?: string;
+    details?: string;
+    suggestion?: string;
+    instructions?: {
+      step1: string;
+      step2: string;
+      step3: string;
+      step4: string;
+    };
+    alternativeMethod?: {
+      title: string;
+      content: string;
+      message: string;
+    };
+  } | null>(null);
 
   if (!isOpen) return null;
 
@@ -58,12 +76,13 @@ export default function BlogPublishModal({
         
         setResult(response.data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('발행 오류:', error);
+      const axiosError = error as { response?: { data?: { error?: string; details?: string } } };
       setResult({
         success: false,
-        error: error.response?.data?.error || '발행 중 오류가 발생했습니다.',
-        details: error.response?.data?.details,
+        error: axiosError.response?.data?.error || '발행 중 오류가 발생했습니다.',
+        details: axiosError.response?.data?.details,
         suggestion: publishMethod === 'selenium' ? '수동 발행 방식을 시도해보세요.' : 'Selenium 자동 발행을 시도해보세요.'
       });
     } finally {
@@ -141,7 +160,7 @@ export default function BlogPublishModal({
           <label className="block text-sm font-medium mb-2">발행 타입</label>
           <select
             value={publishType}
-            onChange={(e) => setPublishType(e.target.value as any)}
+            onChange={(e) => setPublishType(e.target.value as 'draft' | 'immediate' | 'reserve')}
             className="w-full p-2 border rounded"
           >
             <option value="draft">임시저장</option>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 import { AuthGuard } from '../../components/auth/AuthGuard';
@@ -9,10 +9,15 @@ import { LoginButton } from '../../components/auth/LoginButton';
 interface Step1Data {
   topic: string;
   contentType: 'informational' | 'sales' | '';
+  model: 'gemini-2.5-pro' | 'gpt-4o' | 'claude-3-5-sonnet' | '';
+  tone: string;
+  audience: string;
+  goal: string;
 }
 
 interface Step2Data {
-  generatedTitle: string;
+  generatedTitles: string[];
+  selectedTitleIndex: number | null;
   editedTitle: string;
 }
 
@@ -37,10 +42,15 @@ export default function AIWriting() {
   // Step data
   const [step1Data, setStep1Data] = useState<Step1Data>({ 
     topic: '', 
-    contentType: '' 
+    contentType: '',
+    model: 'gemini-2.5-pro',
+    tone: '',
+    audience: '',
+    goal: ''
   });
   const [step2Data, setStep2Data] = useState<Step2Data>({
-    generatedTitle: '',
+    generatedTitles: [],
+    selectedTitleIndex: null,
     editedTitle: ''
   });
   const [step3Data, setStep3Data] = useState<Step3Data>({
@@ -56,7 +66,7 @@ export default function AIWriting() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string>('');
 
-  // Step 1: Generate SEO title using Gemini API
+  // Step 1: Generate SEO titles using selected model
   const generateSEOTitle = async () => {
     if (!step1Data.topic.trim()) {
       setErrors({ topic: '키워드나 주제를 입력해주세요.' });
@@ -67,6 +77,10 @@ export default function AIWriting() {
       setErrors({ contentType: '콘텐츠 타입을 선택해주세요.' });
       return;
     }
+    if (!step1Data.model) {
+      setErrors({ model: '모델을 선택해주세요.' });
+      return;
+    }
 
     setIsLoading(true);
     setErrors({});
@@ -75,14 +89,17 @@ export default function AIWriting() {
     try {
       const response = await axios.post('/api/gemini/generate-title', {
         topic: step1Data.topic,
-        contentType: step1Data.contentType
+        contentType: step1Data.contentType,
+        model: step1Data.model,
+        numTitles: 3
       });
 
-      const { title } = response.data;
+      const { titles } = response.data as { titles: string[] };
       setStep2Data(prev => ({
         ...prev,
-        generatedTitle: title,
-        editedTitle: title
+        generatedTitles: titles,
+        selectedTitleIndex: titles.length ? 0 : null,
+        editedTitle: titles[0] || ''
       }));
       setCurrentStep(2);
     } catch (error: unknown) {
@@ -124,7 +141,9 @@ export default function AIWriting() {
       const response = await axios.post('/api/gemini/generate-keywords', {
         topic: step1Data.topic,
         title: step2Data.editedTitle,
-        contentType: step1Data.contentType
+        contentType: step1Data.contentType,
+        model: step1Data.model,
+        useNaverTrends: true
       });
 
       const { primaryKeyword, subKeywords } = response.data;
@@ -176,10 +195,14 @@ export default function AIWriting() {
         topic: step1Data.topic,
         title: step2Data.editedTitle,
         contentType: step1Data.contentType,
-        keywords: [step3Data.primaryKeyword, ...step3Data.subKeywords.filter(k => k.trim())]
+        keywords: [step3Data.primaryKeyword, ...step3Data.subKeywords.filter(k => k.trim())],
+        model: step1Data.model,
+        tone: step1Data.tone,
+        audience: step1Data.audience,
+        goal: step1Data.goal
       });
 
-      const { title, content, summary, tags } = response.data;
+      const { title, content, summary, tags, imagePrompts } = response.data as any;
       
       // 콘텐츠 설정
       setGeneratedContent({
@@ -189,6 +212,17 @@ export default function AIWriting() {
       });
       setMetaDescription(summary);
       setContentOutline(tags);
+
+      // 이미지 캡션/ALT 생성 시도
+      if (Array.isArray(imagePrompts) && imagePrompts.length) {
+        try {
+          const imgResp = await axios.post('/api/gemini/generate-image', { prompts: imagePrompts, model: step1Data.model });
+          // 현재는 UI 반영 최소화: 콘솔로만 확인
+          console.log('이미지 캡션/ALT:', imgResp.data);
+        } catch (e) {
+          console.warn('이미지 캡션/ALT 생성 실패', e);
+        }
+      }
       
       // SEO 분석 수행
       // 한글의 경우 어절 단위로 계산
@@ -292,7 +326,7 @@ export default function AIWriting() {
   const getStepTitle = (step: Step) => {
     switch (step) {
       case 1: return '키워드/주제 입력';
-      case 2: return '제목 확인 및 글 성격 선택';
+      case 2: return '제목 선택/수정 및 글 성격 선택';
       case 3: return '키워드 설정';
       case 4: return '글 생성 및 편집';
       default: return '';
@@ -351,9 +385,7 @@ export default function AIWriting() {
           {/* Step 1: Topic Input */}
           {currentStep === 1 && (
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-2xl font-semibold text-text mb-6 text-center">
-                어떤 주제로 글을 작성하시겠어요?
-              </h2>
+              <h2 className="text-2xl font-semibold text-text mb-6 text-center">어떤 주제로 글을 작성하시겠어요?</h2>
               
               <div className="space-y-4">
                 <div>
@@ -406,6 +438,62 @@ export default function AIWriting() {
                   {errors.contentType && <span className="text-red-500 text-sm mt-1 block">{errors.contentType}</span>}
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-text mb-2">모델 선택 <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+                      { key: 'gpt-4o', label: 'GPT-4o' },
+                      { key: 'claude-3-5-sonnet', label: 'Claude 3.5' },
+                    ].map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setStep1Data(prev => ({ ...prev, model: m.key as Step1Data['model'] }))}
+                        className={`p-3 border rounded-lg text-center transition-colors ${
+                          step1Data.model === m.key ? 'border-text bg-text/5 text-text' : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        <div className="font-medium">{m.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.model && <span className="text-red-500 text-sm mt-1 block">{errors.model}</span>}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-2">톤</label>
+                    <input
+                      type="text"
+                      value={step1Data.tone}
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, tone: e.target.value }))}
+                      placeholder="예: 전문가형, 친근한, 간결한 등"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-2">타깃</label>
+                    <input
+                      type="text"
+                      value={step1Data.audience}
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, audience: e.target.value }))}
+                      placeholder="예: 초보자, 소상공인, 마케터 등"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text border-gray-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-2">목표</label>
+                    <input
+                      type="text"
+                      value={step1Data.goal}
+                      onChange={(e) => setStep1Data(prev => ({ ...prev, goal: e.target.value }))}
+                      placeholder="예: 정보전달, 전환 유도, 구독 유도 등"
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text border-gray-300"
+                    />
+                  </div>
+                </div>
+
                 {/* API 에러 표시 */}
                 {apiError && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
@@ -448,11 +536,29 @@ export default function AIWriting() {
           {/* Step 2: Title Review and Content Type */}
           {currentStep === 2 && (
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-2xl font-semibold text-text mb-6 text-center">
-                생성된 제목을 확인하고 수정하세요
-              </h2>
+              <h2 className="text-2xl font-semibold text-text mb-6 text-center">생성된 제목을 선택하거나 수정하세요</h2>
               
               <div className="space-y-6">
+                <div>
+                  {step2Data.generatedTitles.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-700">제안된 제목</div>
+                      <div className="space-y-2">
+                        {step2Data.generatedTitles.map((t, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setStep2Data(prev => ({ ...prev, selectedTitleIndex: idx, editedTitle: t }))}
+                            className={`w-full text-left p-3 border rounded-lg ${step2Data.selectedTitleIndex === idx ? 'border-text bg-text/5' : 'border-gray-300 hover:border-gray-400'}`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label htmlFor="editTitle" className="block text-sm font-medium text-text mb-2">
                     제목 (수정 가능) <span className="text-red-500">*</span>
@@ -484,9 +590,7 @@ export default function AIWriting() {
           {/* Step 3: Keyword Setting */}
           {currentStep === 3 && (
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-2xl font-semibold text-text mb-6 text-center">
-                글에 포함할 키워드를 설정하세요
-              </h2>
+              <h2 className="text-2xl font-semibold text-text mb-6 text-center">글에 포함할 키워드를 설정하세요</h2>
               
               <div className="space-y-6">
                 <div>
@@ -671,6 +775,9 @@ export default function AIWriting() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-text/20 focus:border-text resize-none"
                   />
                 </div>
+
+                {/* 예약발행 섹션 */}
+                <ReservePublishSection content={generatedContent.content} title={generatedContent.title || step2Data.editedTitle} />
               </div>
             </div>
           )}
@@ -678,5 +785,85 @@ export default function AIWriting() {
       </div>
     </div>
     </AuthGuard>
+  );
+}
+
+function markdownToHtml(markdown: string): string {
+  // 가볍고 빠른 변환: 소제목/볼드/목록만 처리 (외부 라이브러리 없이 최소 구현)
+  let html = markdown;
+  html = html.replace(/^##\s?(.*)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^###\s?(.*)$/gm, '<h3>$1</h3>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/^-\s(.*)$/gm, '<li>$1</li>');
+  // 리스트를 <ul>로 감싸기(간단 처리)
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`);
+  // 문단 처리
+  html = html.split(/\n{2,}/).map(p => `<p>${p}</p>`).join('\n');
+  return html;
+}
+
+function ReservePublishSection({ content, title }: { content: string; title: string }) {
+  const [id, setId] = useState('');
+  const [password, setPassword] = useState('');
+  const [publishType, setPublishType] = useState<'draft' | 'immediate' | 'reserve'>('reserve');
+  const [reserveAt, setReserveAt] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const contentHtml = useMemo(() => markdownToHtml(content), [content]);
+
+  const handleSchedule = async () => {
+    if (!id || !password) {
+      alert('네이버 ID와 비밀번호를 입력해주세요.');
+      return;
+    }
+    if (publishType === 'reserve' && !reserveAt) {
+      alert('예약 시간을 입력해주세요.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post('/api/schedule/publish', {
+        id,
+        password,
+        title,
+        contentHtml,
+        publishType,
+        reserveAt: publishType === 'reserve' ? reserveAt : undefined
+      });
+      alert('발행 요청이 처리되었습니다.');
+    } catch (e) {
+      alert('발행 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <h3 className="text-lg font-semibold text-text mb-4">네이버 블로그 예약발행</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-text mb-2">네이버 ID</label>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={id} onChange={e => setId(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text mb-2">네이버 비밀번호</label>
+          <input type="password" className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        {['draft','immediate','reserve'].map((p) => (
+          <button key={p} type="button" onClick={() => setPublishType(p as any)} className={`p-3 border rounded-lg ${publishType===p?'border-text bg-text/5':'border-gray-300'}`}>{p==='draft'?'임시저장':p==='immediate'?'즉시발행':'예약발행'}</button>
+        ))}
+      </div>
+      {publishType === 'reserve' && (
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-text mb-2">예약 시간(ISO, 예: 2025-08-10T10:00)</label>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg" value={reserveAt} onChange={e => setReserveAt(e.target.value)} />
+        </div>
+      )}
+      <div className="mt-4 text-right">
+        <button onClick={handleSchedule} disabled={loading} className="bg-text text-white px-4 py-2 rounded-lg font-medium hover:bg-text/90 disabled:bg-gray-400">{loading?'처리 중...':'발행 요청'}</button>
+      </div>
+    </div>
   );
 }

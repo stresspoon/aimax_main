@@ -14,11 +14,10 @@ export async function POST(request: NextRequest) {
   }
   
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
   try {
     const body = await request.json();
 
-    const { topic, title, contentType } = body;
+    const { topic, title, contentType, model: modelName = 'gemini-2.5-pro', useNaverTrends = true } = body;
 
     if (!topic || !title || !contentType) {
       return NextResponse.json(
@@ -27,6 +26,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const modelId = String(modelName || '').startsWith('gemini') ? modelName : 'gemini-2.5-pro';
+    const model = genAI.getGenerativeModel({ model: modelId });
     const keywordGuideline = getKeywordGuideline(contentType, topic);
     
     const prompt = `
@@ -77,6 +78,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 네이버 트렌드 교차 검증(선택)
+    if (useNaverTrends && process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
+      try {
+        const trendResp = await fetch('https://openapi.naver.com/v1/datalab/search', {
+          method: 'POST',
+          headers: {
+            'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
+            'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            startDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10),
+            endDate: new Date().toISOString().slice(0, 10),
+            timeUnit: 'date',
+            keywordGroups: [
+              { groupName: String(keywords.primary_keyword), keywords: [keywords.primary_keyword] },
+              ...keywords.sub_keywords.slice(0, 5).map((kw: string) => ({ groupName: String(kw), keywords: [kw] }))
+            ]
+          })
+        });
+        if (trendResp.ok) {
+          const trendJson = await trendResp.json();
+          // 간단 정렬: 최근 7일 평균 ratio 높은 순으로 보조 키워드 정렬
+          const series = Array.isArray(trendJson?.results) ? trendJson.results : [];
+          const scoreMap: Record<string, number> = {};
+          for (const item of series) {
+            const data = Array.isArray(item?.data) ? item.data.slice(-7) : [];
+            const avg = data.reduce((s: number, d: any) => s + (Number(d.ratio) || 0), 0) / (data.length || 1);
+            const key = String(item.title || item.groupName || '').trim();
+            if (key) scoreMap[key] = avg;
+          }
+          const subKeywords = keywords.sub_keywords
+            .slice(0, 6)
+            .sort((a: string, b: string) => (scoreMap[b] || 0) - (scoreMap[a] || 0));
+          return NextResponse.json({
+            primaryKeyword: keywords.primary_keyword,
+            subKeywords
+          });
+        }
+      } catch (trendErr) {
+        console.warn('Naver Trends fetch 실패:', trendErr);
+      }
+    }
+
+    // 폴백: 트렌드 미사용/실패 시 원본 반환
     return NextResponse.json({
       primaryKeyword: keywords.primary_keyword,
       subKeywords: keywords.sub_keywords

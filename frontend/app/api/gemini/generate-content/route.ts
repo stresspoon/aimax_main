@@ -14,11 +14,10 @@ export async function POST(request: NextRequest) {
   }
   
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
   try {
     const body = await request.json();
 
-    const { topic, title, keywords, contentType } = body;
+    const { topic, title, keywords, contentType, model: modelName = 'gemini-2.5-pro', tone, audience, goal, reservePublishAt } = body;
 
     if (!topic || !contentType) {
       return NextResponse.json(
@@ -30,6 +29,7 @@ export async function POST(request: NextRequest) {
     const primaryKeyword = Array.isArray(keywords) ? keywords[0] : keywords;
     const subKeywords = Array.isArray(keywords) ? keywords.slice(1) : [];
     const contentGuideline = getContentGuideline(contentType, title, primaryKeyword, subKeywords);
+    const model = genAI.getGenerativeModel({ model: modelName });
     
     const prompt = `
       ${contentGuideline}
@@ -38,18 +38,23 @@ export async function POST(request: NextRequest) {
       제목: ${title}
       키워드: ${Array.isArray(keywords) ? keywords.join(', ') : keywords}
       콘텐츠 타입: ${contentType === 'informational' ? '정보성' : '판매성'}
+      추가 조건: 톤=${tone || '일반'}, 타깃=${audience || '일반 대중'}, 목표=${goal || '정보 전달'}
       
       위 전문 가이드라인에 따라 ${contentType === 'informational' ? '정보성' : '판매성'} 블로그 콘텐츠를 작성해주세요.
       
       반드시 다음 JSON 형식으로만 응답해주세요:
       {
         "title": "SEO 최적화된 제목",
-        "content": "본문 내용 (정확히 2000-3000자, 공백 포함)",
+        "content": "본문 내용 (naver_blog 가이드 기준 길이; 마크다운 소제목/볼드/목록 활용)",
         "summary": "요약 (150-200자)",
-        "tags": ["태그1", "태그2", "태그3", "태그4", "태그5", "태그6", "태그7"]
+        "tags": ["태그1", "태그2", "태그3", "태그4", "태그5", "태그6", "태그7"],
+        "image_prompts": ["이미지 프롬프트1", "이미지 프롬프트2", "이미지 프롬프트3"]
       }
       
-      중요: content는 반드시 2000-3000자 사이여야 하며, 핵심 키워드를 15-20회 포함해야 합니다.
+      중요:
+      - content는 naver_blog 가이드(도입/문제/핵심정보/가치제안/증거/효과/CTA 등) 구조와 길이를 따르세요.
+      - 핵심 키워드를 15-20회(약 2-3% 밀도) 자연스럽게 포함하세요.
+      - 마크다운으로 소제목(##), 굵게(**), 목록(-, 1.)을 적절히 사용하세요.
     `;
 
     const result = await Promise.race([
@@ -86,12 +91,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const payload: any = {
       title: content.title,
       content: content.content,
       summary: content.summary,
-      tags: content.tags
-    });
+      tags: content.tags,
+      imagePrompts: Array.isArray(content.image_prompts) ? content.image_prompts : []
+    };
+
+    // 예약발행 옵션을 프론트로 전달(서버 스케줄링은 별도 엔드포인트에서 처리)
+    if (reservePublishAt) {
+      payload.reservePublishAt = reservePublishAt;
+    }
+
+    return NextResponse.json(payload);
 
   } catch (error) {
     

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getTitleGuideline } from '@/utils/contentGuidelines';
 
 export async function POST(request: NextRequest) {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -12,11 +13,10 @@ export async function POST(request: NextRequest) {
   }
   
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
   try {
     const body = await request.json();
 
-    const { topic, contentType } = body;
+    const { topic, contentType, model: modelName = 'gemini-2.5-pro', numTitles = 3 } = body;
 
     if (!topic || !contentType) {
       return NextResponse.json(
@@ -25,19 +25,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const modelId = String(modelName || '').startsWith('gemini') ? modelName : 'gemini-2.5-pro';
+    const model = genAI.getGenerativeModel({ model: modelId });
+
+    const guideline = getTitleGuideline(contentType, topic, []);
     const prompt = `
-      다음 주제에 대한 SEO 최적화된 블로그 제목을 1개만 생성해주세요.
+      ${guideline}
+      
+      다음 주제에 대한 SEO 최적화 블로그 제목을 ${Math.min(Math.max(Number(numTitles) || 3, 1), 5)}개 생성하세요.
       
       주제: ${topic}
       글 성격: ${contentType === 'informational' ? '정보성 콘텐츠' : '판매성 콘텐츠'}
       
-      요구사항:
+      제목 규칙:
       1. 40-60자 사이
-      2. 키워드를 포함할 것
-      3. 흥미를 유발하고 클릭을 유도할 수 있는 제목
-      4. 2025년 트렌드를 반영
+      2. 메인 키워드 포함
+      3. 클릭을 유도하되 과장/낚시 금지
+      4. 2025년 트렌드 반영
       
-      제목만 출력하고 다른 설명은 하지 마세요.
+      오직 아래 JSON 형식으로만 응답:
+      { "titles": ["제목1", "제목2", "제목3"] }
     `;
 
     const result = await Promise.race([
@@ -48,9 +55,26 @@ export async function POST(request: NextRequest) {
     ]) as Awaited<ReturnType<typeof model.generateContent>>;
 
     const response = result.response;
-    const title = response.text().trim();
+    const text = response.text().trim();
 
-    return NextResponse.json({ title });
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json(
+        { error: 'JSON 형식의 응답을 받지 못했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const titles = Array.isArray(parsed?.titles) ? parsed.titles.map((t: string) => String(t).trim()).filter(Boolean) : [];
+    if (!titles.length) {
+      return NextResponse.json(
+        { error: '제목 데이터를 추출하지 못했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ titles, modelUsed: modelId });
 
   } catch (error) {
     

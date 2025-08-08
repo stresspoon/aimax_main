@@ -16,7 +16,7 @@ export default function BlogPublishModal({
   title, 
   content 
 }: BlogPublishModalProps) {
-  const [publishMethod, setPublishMethod] = useState<'auto' | 'manual'>('manual');
+  const [publishMethod, setPublishMethod] = useState<'selenium' | 'manual'>('manual');
   const [publishType, setPublishType] = useState<'draft' | 'immediate' | 'reserve'>('draft');
   const [reserveAt, setReserveAt] = useState('');
   const [naverId, setNaverId] = useState('');
@@ -31,9 +31,9 @@ export default function BlogPublishModal({
     setResult(null);
 
     try {
-      if (publishMethod === 'auto') {
-        // 자동 발행 시도 (제한적)
-        const response = await axios.post('/api/schedule/publish', {
+      if (publishMethod === 'selenium') {
+        // Selenium 자동 발행
+        const response = await axios.post('/api/naver-blog/publish-selenium', {
           id: naverId,
           password: naverPw,
           title,
@@ -44,7 +44,8 @@ export default function BlogPublishModal({
         
         setResult({
           success: true,
-          message: '발행 프로세스가 시작되었습니다.'
+          message: response.data.message || 'Selenium 자동 발행이 완료되었습니다.',
+          method: 'selenium'
         });
       } else {
         // 북마크릿 방식
@@ -62,7 +63,8 @@ export default function BlogPublishModal({
       setResult({
         success: false,
         error: error.response?.data?.error || '발행 중 오류가 발생했습니다.',
-        suggestion: '수동 발행 방식을 시도해보세요.'
+        details: error.response?.data?.details,
+        suggestion: publishMethod === 'selenium' ? '수동 발행 방식을 시도해보세요.' : 'Selenium 자동 발행을 시도해보세요.'
       });
     } finally {
       setLoading(false);
@@ -91,26 +93,31 @@ export default function BlogPublishModal({
                 onChange={(e) => setPublishMethod(e.target.value as 'manual')}
                 className="mr-2"
               />
-              수동 발행 (권장)
+              수동 발행 (안전)
             </label>
             <label className="flex items-center">
               <input
                 type="radio"
-                value="auto"
-                checked={publishMethod === 'auto'}
-                onChange={(e) => setPublishMethod(e.target.value as 'auto')}
+                value="selenium"
+                checked={publishMethod === 'selenium'}
+                onChange={(e) => setPublishMethod(e.target.value as 'selenium')}
                 className="mr-2"
               />
-              자동 발행 (베타)
+              Selenium 자동 발행 (실험적)
             </label>
           </div>
         </div>
 
         {/* 자동 발행 시 로그인 정보 */}
-        {publishMethod === 'auto' && (
-          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-sm text-yellow-800 mb-2">
-              ⚠️ 자동 발행은 Vercel 환경에서 제한적으로 작동할 수 있습니다.
+        {publishMethod === 'selenium' && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-800 mb-2">
+              ✨ Selenium 기반 자동 발행: writing 폴더의 성공 사례를 적용한 개선된 방식
+            </p>
+            <p className="text-xs text-blue-600 mb-3">
+              • 클립보드 복사/붙여넢기 방식 사용<br/>
+              • 네이버 봇 감지 우회<br/>
+              • 더 안정적인 셀렉터 사용
             </p>
             <input
               type="text"

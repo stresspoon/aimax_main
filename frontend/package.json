@@ -13,6 +13,7 @@
     "@auth/prisma-adapter": "^2.10.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.12.0",
+    "@sparticuz/chromium": "^126.0.0",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",
     "axios": "^1.11.0",
@@ -23,10 +24,10 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^6.10.1",
     "prisma": "^6.12.0",
-    "@sparticuz/chromium": "^126.0.0",
     "puppeteer-core": "^24.15.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "selenium-webdriver": "^4.34.0",
     "zod": "^4.0.10"
   },
   "devDependencies": {
@@ -35,6 +36,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/selenium-webdriver": "^4.1.28",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "tailwindcss": "^4",

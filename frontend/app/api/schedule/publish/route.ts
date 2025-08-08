@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-let chromium: any;
-let puppeteer: any;
+// Dynamic imports for serverless compatibility
+const getChromium = async () => {
+  if (process.env.VERCEL) {
+    const chromiumModule = await import('@sparticuz/chromium');
+    return chromiumModule.default;
+  }
+  return null;
+};
 
-// Dynamic imports to handle serverless environments
-if (process.env.VERCEL) {
-  chromium = require('@sparticuz/chromium');
-  puppeteer = require('puppeteer-core');
-} else {
-  // For local development, use puppeteer directly
-  puppeteer = require('puppeteer-core');
-}
+const getPuppeteer = async () => {
+  const puppeteerModule = await import('puppeteer-core');
+  return puppeteerModule.default;
+};
 
 interface PublishPayload {
   id: string;
@@ -47,9 +49,15 @@ export async function POST(request: NextRequest) {
     
     let browser;
     try {
+      const puppeteer = await getPuppeteer();
+      
       if (process.env.VERCEL) {
         // Vercel serverless environment
         console.log('[Publish API] Running on Vercel, using @sparticuz/chromium');
+        const chromium = await getChromium();
+        if (!chromium) {
+          throw new Error('Failed to load chromium module');
+        }
         browser = await puppeteer.launch({
           args: chromium.args,
           defaultViewport: chromium.defaultViewport,

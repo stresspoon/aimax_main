@@ -494,7 +494,7 @@ export class DatabaseService {
       await prisma.$queryRaw`SELECT 1`;
       
       // 2. 주요 테이블 존재 확인
-      const tableChecks = await Promise.all([
+      await Promise.all([
         prisma.user.findFirst({ select: { id: true } }),
         prisma.campaign.findFirst({ select: { id: true } }),
         prisma.applicant.findFirst({ select: { id: true } })
